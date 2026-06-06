@@ -66,4 +66,8 @@ Singleton {
     readonly property int   tFast:        120
     readonly property int   tBase:        240
     readonly property int   tSlow:        360
+
+    // atraso antes de um overlay abrir por hover — confirma intenção e evita
+    // abertura acidental ao só passar o mouse na borda (fechamento é imediato).
+    readonly property int   tHoverOpen:   280
 }

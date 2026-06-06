@@ -18,10 +18,10 @@ PanelWindow {
     WlrLayershell.layer: WlrLayer.Top
 
     readonly property int sliverW: 220
-    // hover com pequeno atraso: evita abrir o launcher só ao passar no rodapé
+    // hover com atraso: evita abrir o launcher só ao passar no rodapé
     property bool hovering: sliverHover.hovered || cardHover.hovered
     property bool open: false
-    Timer { id: openTimer; interval: 110; onTriggered: root.open = true }
+    Timer { id: openTimer; interval: Theme.tHoverOpen; onTriggered: root.open = true }
     onHoveringChanged: {
         if (root.hovering) openTimer.start()
         else { openTimer.stop(); root.open = false }
