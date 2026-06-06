@@ -92,11 +92,13 @@ PanelWindow {
             TabButton { glyph: ""; label: "Workspaces";  active: root.tab === 3; onClicked: root.tab = 3 }
         }
 
-        Rectangle {
+        Divider {
             id: divider
-            anchors { top: tabbar.bottom; topMargin: Theme.gap / 2; left: parent.left; right: parent.right; leftMargin: Theme.pad; rightMargin: Theme.pad }
+            // mesmas medidas do divisor inline anterior: recuo de Theme.pad nos
+            // dois lados (largura = parent - 2*pad, centralizado → esquerda em pad).
+            anchors { top: tabbar.bottom; topMargin: Theme.gap / 2; horizontalCenter: parent.horizontalCenter }
+            width: parent.width - Theme.pad * 2
             height: 1
-            color: Theme.stroke
         }
 
         // conteúdo das abas
