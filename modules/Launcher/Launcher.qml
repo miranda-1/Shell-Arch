@@ -24,6 +24,9 @@ PanelWindow {
 
     readonly property int sliverW: 220
     readonly property int gripHotspotH: 18   // altura da zona clicável do puxador (repouso)
+    readonly property int resultRowHeight: 54
+    readonly property int resultSpacing: 6
+    readonly property int resultSlots: 4
 
     // Abertura por CLIQUE no puxador (não por hover). `open` é alternado pelo
     // TapHandler da zona do grip; hover é só feedback visual. Esc e clique-fora
@@ -35,6 +38,7 @@ PanelWindow {
     DesktopAppModel {
         id: appModel
         limit: 4
+        query: searchInput.text
     }
 
     // Máscara DESACOPLADA da animação do card (essa dependência causava o loop
@@ -60,6 +64,7 @@ PanelWindow {
     // Esc fecha. Precisa de um item com foco ativo; o foco de teclado é concedido
     // pelo compositor (keyboardFocus OnDemand) no clique que abre o painel.
     Item {
+        id: closeProxy
         anchors.fill: parent
         focus: root.open
         Keys.onEscapePressed: root.close()
@@ -131,19 +136,21 @@ PanelWindow {
                 color: Theme.accentTrack
                 border.width: 1
                 border.color: Theme.stroke
-                implicitHeight: resultsCol.implicitHeight + Theme.gap * 2
+                implicitHeight: Theme.gap * 2
+                              + root.resultRowHeight * root.resultSlots
+                              + root.resultSpacing * (root.resultSlots - 1)
 
                 Column {
                     id: resultsCol
                     anchors { left: parent.left; right: parent.right; top: parent.top; margins: Theme.gap }
-                    spacing: 6
+                    spacing: root.resultSpacing
 
                     Repeater {
                         model: appModel.apps
                         delegate: Rectangle {
                             required property var modelData
                             width: parent.width
-                            height: 54
+                            height: root.resultRowHeight
                             radius: Theme.radius
                             antialiasing: true
                             color: rowHover.hovered ? Theme.accentSoft : Theme.card
@@ -190,9 +197,17 @@ PanelWindow {
                         }
                     }
                 }
+
+                Text {
+                    anchors.centerIn: parent
+                    visible: appModel.query.trim().length > 0 && appModel.apps.length === 0
+                    text: "No results"
+                    font.pixelSize: 13
+                    color: Theme.textDim
+                }
             }
 
-            // campo de busca (fake)
+            // campo de busca
             Rectangle {
                 width: parent.width
                 height: 46
@@ -205,16 +220,66 @@ PanelWindow {
                     anchors { left: parent.left; leftMargin: Theme.pad + 4; verticalCenter: parent.verticalCenter }
                     spacing: Theme.gap
                     Text { anchors.verticalCenter: parent.verticalCenter; text: ""; font.family: Theme.iconFont; font.pixelSize: 16; color: Theme.textDim }  // lupa
-                    Text { anchors.verticalCenter: parent.verticalCenter; text: ">wa"; font.pixelSize: 15; color: Theme.text }
+
+                    Item {
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: 520
+                        height: 24
+
+                        TextInput {
+                            id: searchInput
+                            anchors.fill: parent
+                            clip: true
+                            color: Theme.text
+                            selectionColor: Theme.accentSoft
+                            selectedTextColor: Theme.text
+                            font.pixelSize: 15
+                            verticalAlignment: TextInput.AlignVCenter
+
+                            Keys.forwardTo: [closeProxy]
+                            Keys.onReturnPressed: (event) => { event.accepted = true }
+                            Keys.onEnterPressed: (event) => { event.accepted = true }
+                        }
+
+                        Text {
+                            anchors { left: parent.left; verticalCenter: parent.verticalCenter }
+                            visible: searchInput.text.length === 0
+                            text: "Search apps"
+                            font.pixelSize: 15
+                            color: Theme.textDim
+                        }
+                    }
                 }
-                Text {
+
+                Item {
                     anchors { right: parent.right; rightMargin: Theme.pad + 4; verticalCenter: parent.verticalCenter }
-                    text: ""   // x
-                    font.family: Theme.iconFont
-                    font.pixelSize: 14
-                    color: Theme.textDim
+                    width: 20
+                    height: 20
+
+                    Text {
+                        anchors.centerIn: parent
+                        text: ""   // x
+                        font.family: Theme.iconFont
+                        font.pixelSize: 14
+                        color: Theme.textDim
+                        opacity: searchInput.text.length > 0 ? 1 : 0.55
+                    }
+
+                    TapHandler {
+                        onTapped: {
+                            searchInput.clear();
+                            searchInput.forceActiveFocus();
+                        }
+                    }
                 }
             }
         }
+    }
+
+    onOpenChanged: {
+        if (root.open)
+            searchInput.forceActiveFocus();
+        else
+            searchInput.text = "";
     }
 }
