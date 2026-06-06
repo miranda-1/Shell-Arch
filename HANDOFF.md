@@ -6,6 +6,101 @@
 
 ---
 
+## 0. ESTADO ATUAL AUTORITATIVO (2026-06-06 — Fase 3 concluída)
+
+> **Leia esta seção primeiro.** Ela é a fonte de verdade atual e **supersede** as
+> seções históricas abaixo onde houver conflito. As seções 1–14 são registro
+> histórico (incluindo o tema rosé/ink antigo e o "Launcher bugado" — ambos
+> **superados**: hoje o tema é **P&B/grafite** e o **Launcher está aprovado**).
+
+**1. Linha oficial de trabalho**
+- Trabalho **direto na `main`**, **sem branches**. Não criar branch, não dar push.
+
+**2. Fase 3 — CONCLUÍDA**
+- Limpeza/componentização encerrada com sucesso. Próxima fase ativa: **Fase 4 —
+  Launcher funcional** (ver item 7).
+
+**3. Resumo das refatorações da Fase 3**
+- `components/Divider.qml` **criado** e aplicado em `EdgeLeft` e `EdgeTop`
+  (extração pixel-idêntica do divisor inline duplicado).
+- `config/Theme.qml`: **tokens aditivos** de tipografia (`fsTiny…fsHero`), glyph
+  (`glyphSm…glyphHero`) e dimensão (`rowHeight`, `iconTile`, `trackThin`,
+  `ringWidth`). Nada removido/renomeado.
+- Tokens **aplicados** (valores idênticos) em `SliderPill`, `RingMeter` e
+  `Dashboard`.
+- `NowPlaying.qml` foi **avaliado e NÃO criado**: os blocos de mídia do EdgeTop e
+  do Dashboard têm layouts divergentes (Row×Column, tamanhos, seek bar) — extrair
+  mudaria o visual. Decisão registrada: não forçar.
+- `components/ScreenFrame.qml` **marcado DEPRECATED** (header de legado da moldura
+  contínua). **Não reativar e não remover.**
+- `qmllint` limpo em tudo que foi tocado; **visual praticamente idêntico**.
+
+**4. Arquivos relevantes atuais**
+```
+shell.qml                      # entrypoint (NÃO alterar) — monta as 4 bordas
+config/Theme.qml               # tokens visuais (P&B/grafite) + tokens da Fase 3
+config/qmldir                  # registra o singleton Theme
+components/
+  Divider.qml                  # NOVO (Fase 3) — separador fino reutilizável
+  Card.qml  IconButton.qml  Pill.qml  TabButton.qml
+  SliderPill.qml  RingMeter.qml  CalendarCard.qml  SectionHeader.qml
+  ScreenFrame.qml              # DEPRECATED/legado — inativo, não importado
+modules/
+  EdgeLeft/EdgeLeft.qml        # sidebar principal (aprovada)
+  EdgeTop/EdgeTop.qml          # drawer do topo + 4 abas (anti-hover-acidental)
+  EdgeRight/EdgeRight.qml      # rail + card de sliders (APROVADO/CONGELADO)
+  Launcher/Launcher.qml        # painel inferior por clique (APROVADO/ESTÁVEL)
+  Dashboard/Dashboard.qml      # conteúdo da aba Dashboard
+ROADMAP.md  HANDOFF.md  README.md  docs/  assets/references/
+```
+
+**5. Regras absolutas de segurança (reforço)**
+- Trabalhar **somente** dentro de `~/Projetos/ui-shell-prototype/`.
+- **Não** mexer em HyDE, Waybar, Hyprland, SDDM, boot, Secure Boot, systemd,
+  autostart, login, bateria ou PAM — nada do sistema real.
+- **Não** instalar pacotes. **Não** dar push. **Não** criar branch.
+- **Não** integrar dados reais fora do escopo autorizado da fase atual.
+- **Não** reativar `ScreenFrame`. **Não** commitar bug como feature aprovada.
+- Qualquer coisa fora da pasta do protótipo exige **autorização explícita**.
+
+**6. Estado aprovado (NÃO regredir)**
+- **Visual:** P&B/grafite (tema claro monocromático) — **aprovado**. (O tema
+  rosé/ink descrito nas seções 4/6 históricas está **superado**.)
+- **EdgeRight:** aprovado e **congelado** — não mexer.
+- **Launcher:** aprovado e estável — abre por **clique** no puxador, fecha por
+  **clique-fora/Esc**, com hardening `enabled: !root.open` contra clique invisível.
+  **Não** voltar para hover puro.
+- **EdgeTop:** mantém **anti-hover-acidental** (delay + faixa de gatilho estreita).
+  **Não** alterar sua lógica de máscara/hover/trigger/delay.
+- **Dados:** tudo **fake/stub**; nenhum dado real integrado.
+
+**7. Próxima etapa recomendada — Fase 4: Launcher funcional**
+- Foco **exclusivo no Launcher** (busca + lista + abrir app), com segurança.
+- **Começar por DIAGNÓSTICO, não implementação direta:** primeiro investigar como
+  ler apps `.desktop` com segurança (só leitura de
+  `~/.local/share/applications` e `/usr/share/applications`), **depois** propor um
+  plano pequeno. Ver Fase 4 no `ROADMAP.md`.
+
+**8. Instruções para o Codex trabalhar com segurança**
+- Antes de editar: `git status` / `git log --oneline -5` para situar-se na `main`.
+- Mudanças **pequenas e isoladas**; rodar **`qmllint`** nos arquivos tocados.
+- **Não executar `qs -p`** — quem faz o teste visual é o usuário (a shell desenha
+  layers na sessão dele). Entregar comandos para o usuário rodar.
+- **Não commitar sem aprovação** do usuário; **nunca** dar push.
+- Preservar visual/comportamento aprovados (EdgeRight, Launcher, EdgeTop).
+- Em dúvida sobre tocar algo sensível (máscara/hover/sistema), **parar e perguntar**.
+
+**9. Proibição de dados reais fora do escopo**
+- Nenhuma integração real de áudio, brilho, rede, bateria, MPRIS/Spotify,
+  CPU/GPU/mem/temp ou workspaces. Na Fase 4 o **único** acesso permitido é a
+  **leitura de arquivos `.desktop`** para listar/abrir apps locais.
+
+**10. Proibição de autostart/deploy por enquanto**
+- **Não** criar serviço systemd, **não** configurar autostart, **não** substituir
+  a Waybar e **não** fazer deploy. Isso é assunto da Fase 11, só com autorização.
+
+---
+
 ## 1. Objetivo do projeto
 
 Este projeto **não é uma Waybar bonita**. É uma **shell visual reativa** para

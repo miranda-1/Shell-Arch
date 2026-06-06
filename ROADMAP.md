@@ -37,21 +37,28 @@ Estas regras valem para **todas as fases**, salvo autorização explícita em co
 - **sempre criar commits pequenos** e focados;
 - **nunca dar push sem autorização**.
 
-## 3. Estado atual resumido
+## 3. Estado atual resumido (atualizado 2026-06-06 — Fases 0–3 concluídas)
 
+- trabalho direto na **`main`** (linha oficial; sem branches);
 - `shell.qml` monta **EdgeLeft**, **EdgeTop**, **EdgeRight** e **Launcher** por tela;
 - o projeto roda via **`qs -p`** (entrypoint isolado, não substitui nada do sistema);
-- **`ScreenFrame` está inativo** (não é importado no `shell.qml`);
-- todos os **dados são fake/stub**;
+- **`ScreenFrame` está inativo** e marcado **DEPRECATED** (não importado, não remover);
+- todos os **dados são fake/stub** — nenhum dado real integrado;
 - **multi-monitor ativo** — uma instância de cada borda em todos os monitores;
-- **EdgeRight aprovado** — não mexer sem necessidade;
-- **Launcher em correção arquitetural** — saindo de hover puro para abertura por
-  clique no puxador + fechar com clique-fora/Esc;
-- **visual da sidebar em refinamento** (polimento de cor, raio, sombra, espaçamento).
+- **visual P&B/grafite aprovado** (tema claro monocromático);
+- **EdgeRight aprovado e congelado** — não mexer;
+- **Launcher aprovado e estável** — abre por clique no puxador, fecha por
+  clique-fora/Esc, com hardening contra clique invisível (`enabled: !root.open`);
+- **EdgeTop** mantém o anti-hover-acidental (delay + faixa de gatilho estreita);
+- **Fase 3 concluída**: `Divider.qml` criado e aplicado (EdgeLeft/EdgeTop), tokens
+  de tipografia/glyph/dimensão adicionados ao `Theme.qml` e aplicados em
+  `SliderPill`/`RingMeter`/`Dashboard`; `NowPlaying` avaliado e **não extraído**
+  (mudaria layout); `ScreenFrame` marcado DEPRECATED.
+- **próxima fase ativa: Fase 4 — Launcher funcional** (começa por diagnóstico).
 
 ## 4. Roadmap por fases
 
-### Fase 0 — Base segura e versionamento
+### Fase 0 — Base segura e versionamento ✅ CONCLUÍDA
 
 **Tarefas**
 - Git local e remoto correto;
@@ -65,7 +72,7 @@ Estas regras valem para **todas as fases**, salvo autorização explícita em co
 - GitHub correto;
 - documentação coerente.
 
-### Fase 1 — Identidade visual da shell
+### Fase 1 — Identidade visual da shell ✅ CONCLUÍDA
 
 **Tarefas**
 - sidebar esquerda premium;
@@ -79,7 +86,7 @@ Estas regras valem para **todas as fases**, salvo autorização explícita em co
 - `ScreenFrame` continua inativo;
 - `qmllint` limpo.
 
-### Fase 2 — UX e interação estável
+### Fase 2 — UX e interação estável ✅ CONCLUÍDA
 
 **Tarefas**
 - EdgeRight aprovado e preservado;
@@ -94,7 +101,7 @@ Estas regras valem para **todas as fases**, salvo autorização explícita em co
 - painéis não abrem acidentalmente;
 - janelas atrás não entram em conflito.
 
-### Fase 3 — Limpeza e componentização
+### Fase 3 — Limpeza e componentização ✅ CONCLUÍDA
 
 **Tarefas**
 - revisar `components/`;
@@ -109,7 +116,16 @@ Estas regras valem para **todas as fases**, salvo autorização explícita em co
 - módulos bem separados;
 - nenhuma regressão visual.
 
-### Fase 4 — Launcher funcional
+**Resultado (2026-06-06): CONCLUÍDA**
+- `Divider.qml` criado e aplicado em EdgeLeft e EdgeTop (pixel-idêntico);
+- tokens de tipografia/glyph/dimensão adicionados ao `Theme.qml` (aditivos);
+- tokens aplicados em `SliderPill`, `RingMeter` e `Dashboard` (valores idênticos);
+- `NowPlaying` avaliado e **não extraído** (layouts EdgeTop≠Dashboard divergem →
+  mudaria visual; decisão correta de não forçar a extração);
+- `ScreenFrame.qml` marcado **DEPRECATED** (legado da moldura; não reativar/remover);
+- `qmllint` limpo; visual praticamente idêntico; nenhum dado real.
+
+### Fase 4 — Launcher funcional ▶ PRÓXIMA — FASE ATIVA
 
 **Tarefas**
 - `TextInput` real;
@@ -123,6 +139,26 @@ Estas regras valem para **todas as fases**, salvo autorização explícita em co
 - launcher usável no dia a dia;
 - busca estável;
 - foco de teclado funcionando.
+
+**Critérios de ENTRADA (Fase 4)**
+- Fases 0–3 concluídas (✅);
+- visual P&B aprovado, EdgeRight congelado, Launcher estável por clique;
+- `qmllint` limpo; trabalho direto na `main`.
+
+**Como a Fase 4 deve começar — DIAGNÓSTICO, não implementação direta**
+A Fase 4 foca **apenas no Launcher funcional, com segurança**:
+1. **primeiro diagnosticar** como buscar apps `.desktop` com segurança — só leitura
+   de `~/.local/share/applications` e `/usr/share/applications` (parse de `Name`,
+   `Exec`, `Icon`, `NoDisplay`), sem escrever nada no sistema;
+2. **depois propor um plano pequeno** antes de implementar.
+
+**Restrições da Fase 4**
+- não integrar dados reais além do necessário para **listar/abrir apps locais**;
+- não mexer em Hyprland real;
+- não mexer em EdgeRight;
+- não mexer em boot/sistema/autostart;
+- **preservar o visual e o comportamento aprovados do Launcher** (abre por clique,
+  fecha por clique-fora/Esc; **não** voltar para hover puro).
 
 ### Fase 5 — Dados reais somente leitura
 
@@ -236,14 +272,12 @@ Estas regras valem para **todas as fases**, salvo autorização explícita em co
 
 ## 5. Ordem imediata recomendada
 
-A partir do estado atual:
+Fases 0–3 concluídas. A partir do estado atual:
 
-1. terminar o refinamento visual atual;
-2. estabilizar o Launcher;
-3. commitar a Leva D aprovada;
-4. continuar sidebar/puxadores;
-5. componentizar;
-6. só depois iniciar dados reais.
+1. **iniciar a Fase 4 pelo DIAGNÓSTICO** — como ler apps `.desktop` com segurança;
+2. propor um plano pequeno do Launcher funcional (busca + lista + abrir app);
+3. implementar em passos pequenos, preservando visual/comportamento aprovados;
+4. só depois (Fase 5) iniciar dados reais somente leitura.
 
 ## 6. Commits sugeridos por tipo
 
@@ -258,11 +292,11 @@ A partir do estado atual:
 
 ## 7. Não fazer agora
 
-- não mexer no EdgeRight se aprovado;
-- não reativar o `ScreenFrame`;
-- não integrar dados reais durante a Leva D;
-- não criar autostart;
+- não mexer no EdgeRight (aprovado/congelado);
+- não reativar o `ScreenFrame` (DEPRECATED);
+- não integrar dados reais além do necessário para listar/abrir apps na Fase 4;
+- não criar autostart nem fazer deploy por enquanto;
 - não substituir a Waybar;
-- não mexer no sistema real;
+- não mexer no sistema real (HyDE/Hyprland/SDDM/boot/systemd/login/bateria/PAM);
 - não fazer push sem autorização;
 - não commitar bug como feature aprovada.
