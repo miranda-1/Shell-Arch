@@ -516,3 +516,112 @@ Para fechar: `qs kill` ou `Ctrl+C`.
 Próximo passo recomendado: **Leva D**, focada em polimento visual/UX,
 redução de abertura acidental, revisão de multi-monitor e preparação gradual
 para futura integração de dados reais.
+
+---
+
+## 14. Leva D — polimento de interação (EM ANDAMENTO — 2026-06-06)
+
+> Atualização de fim de sessão. Estado real abaixo. EdgeRight resolvido;
+> **Launcher inferior ainda bugado** — NÃO considerar aprovado.
+
+### 14.1 Estado atual do projeto
+- Shell continua **isolada em Quickshell/QML**, rodando por cima do HyDE/Waybar
+  via `qs -p`, **sem alterar nada do sistema**.
+- Bordas montadas em `shell.qml`: `EdgeLeft`, `EdgeTop`, `EdgeRight`, `Launcher`.
+  Tudo ainda **fake/stub**; **nenhum dado real** integrado.
+- `components/ScreenFrame.qml` continua **desmontado/inativo** (sem `import` nem
+  instância em `shell.qml`). **Não reativar.** (Lembrete: ele ainda referencia
+  tokens removidos `frameLine/frameRest/frameSoft` → quebraria se remontado.)
+- **Git local existe** (`git init` feito nesta leva). Há **3 commits**:
+  - `037ea36` chore: snapshot do estado aprovado (sidebar + puxadores)
+  - `b338c4a` feat: primeiro commit para o github
+  - `117a5e2` feat: ajuste visual na sidebar do som
+  - Os commits `b338c4a`/`117a5e2` já incluem o anti-hover e o EdgeRight resolvido.
+- **Working tree com alterações pendentes (NÃO commitadas):**
+  - `config/Theme.qml`
+  - `modules/Launcher/Launcher.qml`
+  - São a **tentativa de correção visual do Launcher** (que NÃO resolveu o bug).
+
+### 14.2 Estado da Leva D
+Foco da leva: polimento de interação/UX, sem dados reais.
+- ✅ **Anti-hover-acidental** — feito e commitado.
+- ✅ **EdgeRight** — resolvido e **aprovado pelo usuário**.
+- ❌ **Launcher inferior** — **ainda bugado** (ver 14.5). Pendente, não aprovado.
+
+### 14.3 O que foi alterado na Leva D (por arquivo)
+- **`config/Theme.qml`** — novos tokens:
+  - `tHoverOpen: 280` (atraso p/ abrir por hover);
+  - `tHoverClose: 220` (atraso p/ fechar — segura o painel no corredor);
+  - `surfaceStrong` (creme quase opaco, alpha ~0.985 — painel sólido sobre janelas);
+  - `strokeStrong` (contorno mais nítido p/ separar de janelas).
+  - (os 2 últimos são a tentativa pendente do Launcher).
+- **`modules/EdgeTop/EdgeTop.qml`** — faixa de gatilho reduzida **720→260px**;
+  delay 110→`Theme.tHoverOpen`. (commitado)
+- **`modules/EdgeRight/EdgeRight.qml`** — **hover unificado** (1 só HoverHandler +
+  máscara contígua), **close delay**, e **remoção dos ícones redundantes** de
+  som/brilho (pills externos saíram; controles só no card aberto). (commitado)
+- **`modules/Launcher/Launcher.qml`** — anti-hover + hover unificado + close delay
+  (commitado); e a tentativa visual **pendente**: card `surfaceStrong` +
+  `strokeStrong`, máscara redesenhada (caixa do card + ponte estreita central
+  `sliverW`×`bridgeH` fixa no rodapé, em vez de largura inteira até a base).
+
+### 14.4 Anti-hover-acidental (aplicado)
+- `tHoverOpen: 280ms` — precisa pousar o mouse ~0,28s para abrir.
+- `tHoverClose: 220ms` — fechamento com atraso (atravessar o corredor não fecha).
+- **EdgeTop**: faixa de gatilho reduzida (720→260px), perto do puxador visível.
+- **EdgeRight**: hover unificado + close delay + remoção de ícones redundantes.
+- Padrão técnico: **um único `HoverHandler` cobrindo a janela**; quem define a
+  área interativa é a **`mask`** (região contígua → sem corredor morto).
+
+### 14.5 EdgeRight — APROVADO / resolvido
+- O usuário testou e disse que **"ficou bom / resolvido"**.
+- Em repouso: só o puxador vertical. No hover: card único de controles
+  (som/brilho + Wi-Fi/BT), sem ícones duplicados fora do painel.
+- **NÃO mexer no EdgeRight na próxima etapa.**
+
+### 14.6 Launcher inferior — BUG PENDENTE (não aprovado)
+Sintomas observados pelo usuário ao abrir o Launcher **sobre terminal/browser**:
+- fica **instável**; parece **disputar foco/render/interação** com as janelas atrás;
+- **some e volta** quando o mouse passa por áreas do browser/terminal;
+- **persistiu** mesmo com card mais opaco (`surfaceStrong`) e máscara redesenhada;
+- **provável causa**: a geometria/máscara/input-region/modelo de hover do Launcher
+  ainda está errada — possível **conflito entre a área interativa do PanelWindow
+  e as janelas atrás**;
+- precisa ser **investigado com calma no próximo chat** (não é mais "ajuste de
+  alpha/máscara": é arquitetural).
+- **O Launcher NÃO deve ser considerado aprovado.**
+
+### 14.7 Arquivos alterados / status do working tree
+- Commitado nesta leva: `config/Theme.qml`, `modules/EdgeTop/EdgeTop.qml`,
+  `modules/EdgeRight/EdgeRight.qml`, `modules/Launcher/Launcher.qml`
+  (anti-hover + EdgeRight resolvido).
+- **Pendente (não commitado):** `config/Theme.qml`, `modules/Launcher/Launcher.qml`
+  (tentativa visual do Launcher, **bug ainda presente**).
+- `qmllint` passa (exit 0) nos arquivos alterados.
+
+### 14.8 Comandos de retomada (próximo chat)
+```sh
+cd ~/Projetos/ui-shell-prototype/
+git status
+git diff
+qs -p ~/Projetos/ui-shell-prototype/shell.qml
+qmllint modules/Launcher/Launcher.qml
+```
+
+### 14.9 Próximo passo recomendado (só Launcher)
+- **Parar de remendar a máscara** do Launcher.
+- **Revisar a arquitetura** do Launcher do zero.
+- Verificar se o **`PanelWindow` do Launcher deveria usar uma janela / input
+  region diferente** (ex.: camada/keyboard-focus/exclusividade distintos).
+- Testar uma solução com o **painel sempre dentro de uma única região contígua
+  e sólida** (sem ponte/remendo de máscara).
+- Considerar **trocar hover puro por clique/atalho** para abrir o Launcher;
+  **manter hover só como preview**, se necessário.
+- Foco da próxima etapa: **somente o Launcher**.
+
+### 14.10 NÃO FAZER
+- **Não** mexer no EdgeRight (ficou bom).
+- **Não** reativar `ScreenFrame`.
+- **Não** integrar dados reais.
+- **Não** mexer no sistema real (Waybar/Hypr/HyDE/SDDM/boot/systemd/login/etc.).
+- **Não** commitar como "aprovado" algo ainda bugado (Launcher).
