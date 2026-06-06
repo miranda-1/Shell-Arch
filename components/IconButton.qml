@@ -24,14 +24,17 @@ Item {
         height: Theme.iconSize + 18
         antialiasing: true
         radius: root.active ? width / 2 : Theme.radiusSm
-        color: root.active ? Theme.accentActive
+        color: tap.pressed && !root.active ? Theme.accentPressed
+             : root.active ? Theme.accentActive
              : root.hovered ? Theme.accentSoft
              : "transparent"
-        scale: (root.hovered && !root.active) ? 1.08 : 1.0
+        scale: tap.pressed ? 0.94
+             : (root.hovered && !root.active) ? 1.08
+             : 1.0
 
         Behavior on color { ColorAnimation { duration: Theme.tFast } }
         Behavior on radius { NumberAnimation { duration: Theme.tFast } }
-        Behavior on scale { NumberAnimation { duration: Theme.tBase; easing.type: Easing.OutCubic} }
+        Behavior on scale { NumberAnimation { duration: Theme.tFast; easing.type: Easing.OutCubic} }
     }
 
     Text {
@@ -43,6 +46,9 @@ Item {
     }
 
     HoverHandler { id: hover }
+    // captura o press só para feedback visual (pressed) — não dispara navegação:
+    // os botões da barra são display-only nesta fase, comportamento inalterado.
+    TapHandler { id: tap }
 
     // tooltip lateral (à direita do ícone)
     Item {
