@@ -1,0 +1,4 @@
+# nada gerado por enquanto; protótipo é só QML + assets
+*.qmlc
+*.jsc
+.qmlls.ini
