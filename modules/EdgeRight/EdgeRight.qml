@@ -21,13 +21,18 @@ PanelWindow {
     readonly property int railW: 34
     readonly property int handleHotspotW: 18
     readonly property int handleLen: 72
-    // hover com atraso, igual ao topo/rodapé (anti-hover-acidental)
-    property bool hovering: railHover.hovered || cardHover.hovered
+    // Hover unificado: um único HoverHandler cobre a janela e a MÁSCARA define a
+    // área interativa. Em repouso = só o hotspot do puxador; aberto = do card até
+    // a borda direita (puxador + corredor + card formam UMA região contígua, sem
+    // vão morto). Abrir tem atraso (anti-acidental); fechar tem atraso (segura o
+    // painel enquanto o mouse cruza do puxador para dentro).
+    property bool hovering: hover.hovered
     property bool open: false
     Timer { id: openTimer; interval: Theme.tHoverOpen; onTriggered: root.open = true }
+    Timer { id: closeTimer; interval: Theme.tHoverClose; onTriggered: root.open = false }
     onHoveringChanged: {
-        if (root.hovering) openTimer.start()
-        else { openTimer.stop(); root.open = false }
+        if (root.hovering) { closeTimer.stop(); openTimer.start() }
+        else { openTimer.stop(); closeTimer.start() }
     }
 
     mask: Region {
@@ -37,54 +42,23 @@ PanelWindow {
         height: root.open ? Math.ceil(card.height) : root.handleLen
     }
 
-    // puxador vertical autônomo. Em repouso, só ele aparece; os pills surgem
-    // quando a borda abre, evitando a leitura de "moldura lateral".
-    Item {
-        id: rail
-        anchors { right: parent.right; verticalCenter: parent.verticalCenter }
-        width: root.railW
-        height: Math.max(root.handleLen, railCol.implicitHeight)
+    // HoverHandler único — recebe eventos só dentro da máscara, então acompanha
+    // exatamente a região contígua acima.
+    Item { anchors.fill: parent; HoverHandler { id: hover } }
 
-        HoverHandler { id: railHover }
-
-        Rectangle {
-            id: handle
-            anchors { right: parent.right; rightMargin: 8; verticalCenter: parent.verticalCenter }
-            width: Theme.gripThickness
-            height: root.handleLen
-            radius: width / 2
-            antialiasing: true
-            color: railHover.hovered || root.open ? Theme.gripHover : Theme.gripColor
-            opacity: root.open ? 0 : 1
-            Behavior on color { ColorAnimation { duration: Theme.tFast } }
-            Behavior on opacity { NumberAnimation { duration: Theme.tFast } }
-        }
-
-        Column {
-            id: railCol
-            anchors { right: parent.right; rightMargin: root.open ? 8 : 2; verticalCenter: parent.verticalCenter }
-            spacing: Theme.gap
-            opacity: root.open ? 1 : 0
-            Behavior on opacity { NumberAnimation { duration: Theme.tFast } }
-            Behavior on anchors.rightMargin { NumberAnimation { duration: Theme.tFast; easing.type: Easing.OutCubic } }
-
-            Repeater {
-                model: ["", ""]
-                delegate: Pill {
-                    required property var modelData
-                    width: 24
-                    height: 48
-                    color: Theme.accentSoft
-                    Text {
-                        anchors.centerIn: parent
-                        text: modelData
-                        font.family: Theme.iconFont
-                        font.pixelSize: 14
-                        color: Theme.accent
-                    }
-                }
-            }
-        }
+    // puxador vertical autônomo — único elemento em repouso. Os controles de
+    // som/brilho NÃO se repetem aqui fora: vivem só no card aberto (sem redundância).
+    Rectangle {
+        id: handle
+        anchors { right: parent.right; rightMargin: 8; verticalCenter: parent.verticalCenter }
+        width: Theme.gripThickness
+        height: root.handleLen
+        radius: width / 2
+        antialiasing: true
+        color: hover.hovered ? Theme.gripHover : Theme.gripColor
+        opacity: root.open ? 0 : 1
+        Behavior on color { ColorAnimation { duration: Theme.tFast } }
+        Behavior on opacity { NumberAnimation { duration: Theme.tFast } }
     }
 
     // card que desliza para a esquerda
@@ -97,7 +71,6 @@ PanelWindow {
         opacity: root.open ? 1 : 0
         height: col.implicitHeight + Theme.pad * 2
 
-        HoverHandler { id: cardHover }
         Behavior on anchors.rightMargin { NumberAnimation { duration: Theme.tBase; easing.type: Easing.OutExpo } }
         Behavior on opacity { NumberAnimation { duration: Theme.tFast } }
 
