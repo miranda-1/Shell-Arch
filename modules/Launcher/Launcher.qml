@@ -18,30 +18,28 @@ PanelWindow {
     WlrLayershell.layer: WlrLayer.Top
 
     readonly property int sliverW: 220
-    // hover com atraso: evita abrir o launcher só ao passar no rodapé
-    property bool hovering: sliverHover.hovered || cardHover.hovered
+    // Hover unificado: um único HoverHandler + a MÁSCARA define a área interativa.
+    // Repouso = faixa no rodapé-centro; aberto = do TOPO do card até a BASE da tela
+    // (inclui o corredor puxador↔card → o mouse sobe sem o painel fechar). Abrir e
+    // fechar têm atraso para evitar abertura acidental e fechamento prematuro.
+    property bool hovering: hover.hovered
     property bool open: false
     Timer { id: openTimer; interval: Theme.tHoverOpen; onTriggered: root.open = true }
+    Timer { id: closeTimer; interval: Theme.tHoverClose; onTriggered: root.open = false }
     onHoveringChanged: {
-        if (root.hovering) openTimer.start()
-        else { openTimer.stop(); root.open = false }
+        if (root.hovering) { closeTimer.stop(); openTimer.start() }
+        else { openTimer.stop(); closeTimer.start() }
     }
 
     mask: Region {
         x: root.open ? Math.round(card.x) : Math.round((root.width - root.sliverW) / 2)
         y: root.open ? Math.round(card.y) : (root.height - 14)
         width: root.open ? Math.ceil(card.width) : root.sliverW
-        height: root.open ? Math.ceil(card.height) : 14
+        height: root.open ? Math.ceil(root.height - card.y) : 14
     }
 
-    // faixa de hover (rodapé-centro) — invisível, levemente maior p/ mira fácil
-    Item {
-        id: sliver
-        anchors { bottom: parent.bottom; horizontalCenter: parent.horizontalCenter }
-        width: root.sliverW
-        height: 14
-        HoverHandler { id: sliverHover }
-    }
+    // HoverHandler único — recebe eventos só dentro da máscara
+    Item { anchors.fill: parent; HoverHandler { id: hover } }
 
     // puxador autônomo: discreto, sem depender de moldura contínua
     Rectangle {
@@ -53,7 +51,7 @@ PanelWindow {
         antialiasing: true
         color: root.open ? Theme.gripHover : Theme.gripColor
         opacity: root.open ? 0 : 1
-        scale: sliverHover.hovered ? 1.04 : 1.0
+        scale: hover.hovered ? 1.04 : 1.0
         Behavior on color { ColorAnimation { duration: Theme.tFast } }
         Behavior on opacity { NumberAnimation { duration: Theme.tFast } }
         Behavior on scale { NumberAnimation { duration: Theme.tFast; easing.type: Easing.OutCubic } }
@@ -68,7 +66,6 @@ PanelWindow {
         opacity: root.open ? 1 : 0
         height: col.implicitHeight + Theme.pad * 2
 
-        HoverHandler { id: cardHover }
         Behavior on anchors.bottomMargin { NumberAnimation { duration: Theme.tBase; easing.type: Easing.OutExpo } }
         Behavior on opacity { NumberAnimation { duration: Theme.tFast } }
 

@@ -68,6 +68,9 @@ Singleton {
     readonly property int   tSlow:        360
 
     // atraso antes de um overlay abrir por hover — confirma intenção e evita
-    // abertura acidental ao só passar o mouse na borda (fechamento é imediato).
+    // abertura acidental ao só passar o mouse na borda.
     readonly property int   tHoverOpen:   280
+    // atraso antes de fechar — segura o painel enquanto o mouse cruza o corredor
+    // entre puxador e conteúdo, evitando fechamento prematuro.
+    readonly property int   tHoverClose:  220
 }
