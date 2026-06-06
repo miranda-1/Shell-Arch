@@ -58,7 +58,16 @@ PanelWindow {
                 IconButton { glyph: ""; label: "Navegador" }
                 IconButton { glyph: ""; label: "Arquivos" }
                 IconButton { glyph: ""; active: true; label: "Editor (ativo)" }
-                Item { width: 1; height: Theme.gap }
+                // divisor sutil: separa o grupo de apps dos workspaces
+                Item {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    width: Theme.iconSize; height: Theme.gap
+                    Rectangle {
+                        anchors.centerIn: parent
+                        width: parent.width; height: 1
+                        color: Theme.stroke
+                    }
+                }
 
                 // dots de workspace
                 Column {
@@ -103,8 +112,19 @@ PanelWindow {
                 IconButton { glyph: ""; glyphColor: Theme.textDim; label: "SafeEyes" }
                 IconButton { glyph: ""; glyphColor: Theme.textDim; label: "Discord" }
                 IconButton { glyph: ""; glyphColor: Theme.textDim; label: "HyDE" }
-                IconButton { glyph: ""; glyphColor: "#1db954"; label: "Spotify" }
+                IconButton { glyph: ""; glyphColor: Theme.textDim; label: "Spotify" }
                 IconButton { glyph: ""; glyphColor: Theme.textDim; label: "Calendário" }
+
+                // divisor sutil: separa o tray do relógio/status
+                Item {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    width: Theme.iconSize; height: Theme.gap
+                    Rectangle {
+                        anchors.centerIn: parent
+                        width: parent.width; height: 1
+                        color: Theme.stroke
+                    }
+                }
 
                 // relógio empilhado 21 / 40
                 Column {

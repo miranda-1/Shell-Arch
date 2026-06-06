@@ -11,26 +11,27 @@ Singleton {
     readonly property bool isDark: false
 
     // ---- superfícies (translúcidas sobre o wallpaper) ----
-    readonly property color surface:      Qt.rgba(0.965, 0.925, 0.905, 0.82) // painel/drawer
-    readonly property color card:         Qt.rgba(0.976, 0.945, 0.929, 0.92) // card
-    readonly property color cardHover:    Qt.rgba(0.988, 0.961, 0.949, 0.96) // card em hover
-    readonly property color bar:          Qt.rgba(0.965, 0.925, 0.905, 0.85) // barra esquerda
+    readonly property color surface:      Qt.rgba(1, 1, 1, 0.85)  // painel/drawer
+    readonly property color card:         Qt.rgba(1, 1, 1, 0.93)  // card
+    readonly property color cardHover:    Qt.rgba(0.94, 0.94, 0.94, 0.97) // card em hover (cinza claro)
+    readonly property color bar:          Qt.rgba(1, 1, 1, 0.88)  // barra esquerda
     // painel "sólido focado": quase opaco, para overlays que se sobrepõem a
     // JANELAS (não só ao wallpaper) — sem blur real, a translucidez alta virava
     // fantasma sobre terminal/browser. Usado no Launcher.
-    readonly property color surfaceStrong: Qt.rgba(0.972, 0.940, 0.922, 0.985)
+    readonly property color surfaceStrong: Qt.rgba(1, 1, 1, 0.985)
 
-    // ---- acento clay / rosé ----
-    readonly property color accent:       "#b0604a"   // terracota principal
-    readonly property color accentActive: "#a8553f"   // fill ativo (círculo)
-    readonly property color accentSoft:   "#e8c5b8"   // hover sutil / trilha de anel
-    readonly property color accentTrack:  "#f0dcd4"   // fundo de progresso
+    // ---- acento monocromático (preto/cinza, sem cor) ----
+    readonly property color accent:       "#4d4d4d"   // destaque principal (cinza-chumbo)
+    readonly property color accentActive: "#3a3a3a"   // fill ativo (círculo)
+    readonly property color accentSoft:   "#e6e6e6"   // hover sutil / trilha de anel (cinza claro)
+    readonly property color accentTrack:  "#ededed"   // fundo de progresso (cinza claro)
+    readonly property color accentPressed: Qt.darker("#e6e6e6", 1.08) // feedback de clique (hover pressionado)
 
     // ---- texto ----
-    readonly property color text:         "#3a322e"
-    readonly property color textDim:      "#8f827a"
-    readonly property color textFaint:    "#bdb0a8"
-    readonly property color textOnAccent: "#fdf6f2"   // texto/ícone sobre fill clay
+    readonly property color text:         "#3d3d3d"
+    readonly property color textDim:      "#707070"
+    readonly property color textFaint:    "#b3b3b3"
+    readonly property color textOnAccent: "#ffffff"   // texto/ícone sobre fill preto
 
     // ---- separação (quase sem stroke; a sombra é a borda) ----
     readonly property color stroke:       Qt.rgba(0, 0, 0, 0.06)
@@ -41,6 +42,7 @@ Singleton {
 
     // ---- forma ----
     readonly property int   radius:       18
+    readonly property int   radiusLg:     24    // superfícies grandes (drawer) — mais generoso que um chip
     readonly property int   radiusSm:     12
     readonly property int   radiusPill:   999
     readonly property int   screenRound:  22    // raio generoso p/ peças orgânicas ancoradas na borda
@@ -48,8 +50,8 @@ Singleton {
     // ---- puxadores minimalistas (topo / direita / base) ----
     readonly property int   gripLen:      52
     readonly property int   gripThickness: 3
-    readonly property color gripColor:    Qt.rgba(0.952, 0.914, 0.894, 0.98)
-    readonly property color gripHover:    Qt.rgba(0.914, 0.835, 0.798, 0.98)
+    readonly property color gripColor:    Qt.rgba(0.78, 0.78, 0.78, 0.95)
+    readonly property color gripHover:    Qt.rgba(0.42, 0.42, 0.42, 0.98)
 
     // ---- espaçamento ----
     readonly property int   gap:          10

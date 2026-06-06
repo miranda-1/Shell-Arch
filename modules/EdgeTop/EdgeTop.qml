@@ -72,6 +72,8 @@ PanelWindow {
         height: 470
         topLeftRadius: 0
         topRightRadius: 0
+        bottomLeftRadius: Theme.radiusLg
+        bottomRightRadius: Theme.radiusLg
         y: root.open ? 0 : -height - 16
         opacity: root.open ? 1 : 0
 

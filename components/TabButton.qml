@@ -30,7 +30,11 @@ Item {
             anchors.horizontalCenter: parent.horizontalCenter
             text: root.label
             font.pixelSize: 12
-            color: root.active ? Theme.text : Theme.textDim
+            font.bold: root.active
+            color: root.active ? Theme.text
+                 : root.hovered ? Theme.text
+                 : Theme.textDim
+            Behavior on color { ColorAnimation { duration: Theme.tFast } }
         }
     }
 

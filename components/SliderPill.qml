@@ -31,7 +31,7 @@ Item {
     }
 
     Text {
-        anchors { left: parent.left; leftMargin: 16; verticalCenter: parent.verticalCenter }
+        anchors { left: parent.left; leftMargin: Theme.pad; verticalCenter: parent.verticalCenter }
         text: root.glyph
         font.family: Theme.iconFont
         font.pixelSize: 16
@@ -39,7 +39,7 @@ Item {
     }
 
     Text {
-        anchors { right: parent.right; rightMargin: 16; verticalCenter: parent.verticalCenter }
+        anchors { right: parent.right; rightMargin: Theme.pad; verticalCenter: parent.verticalCenter }
         text: Math.round(root.value * 100) + "%"
         font.pixelSize: 13
         color: Theme.text
