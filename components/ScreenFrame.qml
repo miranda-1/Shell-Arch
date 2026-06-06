@@ -1,3 +1,16 @@
+// =============================================================================
+// DEPRECATED — LEGADO da moldura contínua (Leva C). NÃO REATIVAR.
+//
+// Esta peça desenhava uma linha fina ao redor de TODA a tela. A direção aprovada
+// abandonou a moldura contínua em favor de puxadores/painéis minimalistas, então
+// ela NÃO é importada no shell.qml e não deve ser reativada.
+//
+// Além disso, hoje referencia tokens que não existem mais no Theme
+// (Theme.frameLine / frameSoft / frameRest) — quebraria se fosse instanciada.
+//
+// Mantida apenas como referência histórica. Não remover sem decisão explícita.
+// =============================================================================
+
 import "../config"
 import Quickshell
 import Quickshell.Wayland
