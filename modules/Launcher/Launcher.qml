@@ -27,6 +27,8 @@ PanelWindow {
     readonly property int resultRowHeight: 54
     readonly property int resultSpacing: 6
     readonly property int resultSlots: 4
+    property int selectedIndex: -1
+    property bool selectionResetPending: false
 
     // Abertura por CLIQUE no puxador (não por hover). `open` é alternado pelo
     // TapHandler da zona do grip; hover é só feedback visual. Esc e clique-fora
@@ -34,6 +36,24 @@ PanelWindow {
     property bool open: false
     function toggle() { root.open = !root.open }
     function close() { root.open = false }
+    function resetSelection() {
+        root.selectedIndex = appModel.apps.length > 0 ? 0 : -1;
+    }
+    function moveSelection(delta) {
+        const count = appModel.apps.length;
+
+        if (count === 0) {
+            root.selectedIndex = -1;
+            return;
+        }
+
+        if (root.selectedIndex < 0) {
+            root.selectedIndex = 0;
+            return;
+        }
+
+        root.selectedIndex = Math.max(0, Math.min(count - 1, root.selectedIndex + delta));
+    }
     function launchApp(app) {
         if (!app || !app.desktopEntry)
             return;
@@ -42,17 +62,47 @@ PanelWindow {
         searchInput.text = "";
         root.close();
     }
-    function launchFirstResult() {
-        if (appModel.apps.length === 0)
+    function launchSelectedResult() {
+        if (appModel.apps.length === 0 || root.selectedIndex < 0 || root.selectedIndex >= appModel.apps.length)
             return;
 
-        root.launchApp(appModel.apps[0]);
+        root.launchApp(appModel.apps[root.selectedIndex]);
     }
 
     DesktopAppModel {
         id: appModel
         limit: 4
         query: searchInput.text
+    }
+
+    Shortcut {
+        enabled: root.open && appModel.apps.length > 0
+        context: Qt.WindowShortcut
+        sequence: "Down"
+        onActivated: root.moveSelection(1)
+    }
+
+    Shortcut {
+        enabled: root.open && appModel.apps.length > 0
+        context: Qt.WindowShortcut
+        sequence: "Up"
+        onActivated: root.moveSelection(-1)
+    }
+
+    Connections {
+        target: appModel
+        function onAppsChanged() {
+            if (root.selectionResetPending) {
+                root.resetSelection();
+                root.selectionResetPending = false;
+                return;
+            }
+
+            if (appModel.apps.length === 0)
+                root.selectedIndex = -1;
+            else if (root.selectedIndex >= appModel.apps.length)
+                root.selectedIndex = appModel.apps.length - 1;
+        }
     }
 
     // Máscara DESACOPLADA da animação do card (essa dependência causava o loop
@@ -167,14 +217,24 @@ PanelWindow {
                             height: root.resultRowHeight
                             radius: Theme.radius
                             antialiasing: true
-                            color: rowHover.hovered ? Theme.accentSoft : Theme.card
+                            readonly property bool selected: modelData.rowIndex === root.selectedIndex
+                            color: selected ? Theme.accentPressed
+                                 : rowHover.hovered ? Theme.accentSoft
+                                 : Theme.card
                             border.width: 1
-                            border.color: rowHover.hovered ? Theme.strokeStrong : Theme.stroke
+                            border.color: selected ? Theme.strokeStrong
+                                         : rowHover.hovered ? Theme.strokeStrong
+                                         : Theme.stroke
                             Behavior on color { ColorAnimation { duration: Theme.tFast } }
                             Behavior on border.color { ColorAnimation { duration: Theme.tFast } }
 
                             HoverHandler { id: rowHover }
-                            TapHandler { onTapped: root.launchApp(modelData) }
+                            TapHandler {
+                                onTapped: {
+                                    root.selectedIndex = modelData.rowIndex;
+                                    root.launchApp(modelData);
+                                }
+                            }
 
                             Row {
                                 anchors { left: parent.left; leftMargin: Theme.pad; verticalCenter: parent.verticalCenter }
@@ -251,14 +311,19 @@ PanelWindow {
                             font.pixelSize: 15
                             verticalAlignment: TextInput.AlignVCenter
 
+                            Keys.priority: Keys.BeforeItem
                             Keys.forwardTo: [closeProxy]
-                            Keys.onReturnPressed: (event) => {
-                                event.accepted = true;
-                                root.launchFirstResult();
-                            }
-                            Keys.onEnterPressed: (event) => {
-                                event.accepted = true;
-                                root.launchFirstResult();
+                            onTextChanged: root.selectionResetPending = true
+                            Keys.onPressed: (event) => {
+                                switch (event.key) {
+                                case Qt.Key_Return:
+                                case Qt.Key_Enter:
+                                    root.launchSelectedResult();
+                                    event.accepted = true;
+                                    break;
+                                default:
+                                    break;
+                                }
                             }
                         }
 
@@ -298,9 +363,13 @@ PanelWindow {
     }
 
     onOpenChanged: {
-        if (root.open)
+        if (root.open) {
+            root.resetSelection();
             searchInput.forceActiveFocus();
-        else
+        } else {
+            root.selectedIndex = -1;
             searchInput.text = "";
+            root.selectionResetPending = false;
+        }
     }
 }
