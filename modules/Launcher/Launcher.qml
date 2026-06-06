@@ -1,7 +1,6 @@
 import "../../config"
 import "../../components"
 import Quickshell
-import Quickshell.Widgets
 import Quickshell.Wayland
 import QtQuick
 
@@ -267,33 +266,8 @@ PanelWindow {
                                     antialiasing: true
                                     color: Theme.surfaceStrong
 
-                                    readonly property bool fileReady: fileIcon.source.length > 0 && fileIcon.status === Image.Ready
-                                    readonly property bool themeReady: themeIcon.source.length > 0 && themeIcon.status === Image.Ready
-
-                                    IconImage {
-                                        id: themeIcon
-                                        anchors.centerIn: parent
-                                        implicitSize: 24
-                                        mipmap: true
-                                        source: modelData.themeIconSource || ""
-                                        visible: parent.themeReady
-                                    }
-
-                                    Image {
-                                        id: fileIcon
-                                        anchors.centerIn: parent
-                                        width: 24
-                                        height: 24
-                                        fillMode: Image.PreserveAspectFit
-                                        smooth: true
-                                        mipmap: true
-                                        source: modelData.fileIconSource || ""
-                                        visible: !parent.themeReady && parent.fileReady
-                                    }
-
                                     Text {
                                         anchors.centerIn: parent
-                                        visible: !parent.themeReady && !parent.fileReady
                                         text: modelData.initial
                                         font.pixelSize: 16
                                         font.bold: true
