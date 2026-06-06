@@ -62,11 +62,7 @@ PanelWindow {
                 Item {
                     anchors.horizontalCenter: parent.horizontalCenter
                     width: Theme.iconSize; height: Theme.gap
-                    Rectangle {
-                        anchors.centerIn: parent
-                        width: parent.width; height: 1
-                        color: Theme.stroke
-                    }
+                    Divider { anchors.centerIn: parent }
                 }
 
                 // dots de workspace
@@ -119,11 +115,7 @@ PanelWindow {
                 Item {
                     anchors.horizontalCenter: parent.horizontalCenter
                     width: Theme.iconSize; height: Theme.gap
-                    Rectangle {
-                        anchors.centerIn: parent
-                        width: parent.width; height: 1
-                        color: Theme.stroke
-                    }
+                    Divider { anchors.centerIn: parent }
                 }
 
                 // relógio empilhado 21 / 40
