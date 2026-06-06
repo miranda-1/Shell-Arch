@@ -86,15 +86,57 @@ QtObject {
         return entry.name || "";
     }
 
+    function toFileUrl(path) {
+        if (!path || !path.length)
+            return "";
+
+        return path.startsWith("file:") ? path : `file://${path}`;
+    }
+
+    function fallbackIconFile(iconName) {
+        switch (iconName) {
+        case "opera":
+        case "com.opera.Opera":
+            return "file:///usr/share/icons/hicolor/256x256/apps/opera.png";
+        case "kitty":
+            return "file:///usr/share/pixmaps/kitty.png";
+        case "visual-studio-code":
+        case "code":
+        case "code-oss":
+        case "com.visualstudio.code":
+            return "file:///usr/share/pixmaps/visual-studio-code.png";
+        case "spotify-launcher":
+        case "spotify":
+        case "com.spotify.Client":
+            return "file:///usr/share/pixmaps/spotify-launcher.png";
+        default:
+            return "";
+        }
+    }
+
     function normalizeEntry(entry, displayName, rowIndex) {
         const name = entry.name || "";
         const genericName = entry.genericName || "";
         const comment = entry.comment || "";
+        const icon = entry.icon || "";
         const resolvedName = displayName || name;
         const subtitle = genericName.length ? genericName
             : comment.length ? comment
             : (resolvedName !== name ? name : "");
         const initial = resolvedName.trim().length ? resolvedName.trim().charAt(0).toUpperCase() : "?";
+        let themeIconSource = "";
+        let fileIconSource = "";
+
+        if (icon.length > 0) {
+            if (icon.startsWith("/") || icon.startsWith("file:")) {
+                fileIconSource = toFileUrl(icon);
+            } else {
+                themeIconSource = Quickshell.iconPath(icon, true);
+
+                if (!themeIconSource.length)
+                    fileIconSource = fallbackIconFile(icon);
+            }
+        }
 
         return {
             desktopEntry: entry,
@@ -103,8 +145,9 @@ QtObject {
             desktopName: name,
             genericName: genericName,
             comment: comment,
-            icon: entry.icon || "",
-            iconSource: entry.icon ? Quickshell.iconPath(entry.icon, true) : "",
+            icon: icon,
+            themeIconSource: themeIconSource,
+            fileIconSource: fileIconSource,
             categories: entry.categories || [],
             keywords: entry.keywords || [],
             execString: entry.execString || "",

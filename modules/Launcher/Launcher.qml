@@ -36,6 +36,21 @@ PanelWindow {
     property bool open: false
     function toggle() { root.open = !root.open }
     function close() { root.open = false }
+    function requestSearchFocus() {
+        if (!root.open)
+            return;
+
+        searchInput.forceActiveFocus();
+        searchInput.cursorPosition = searchInput.text.length;
+
+        Qt.callLater(() => {
+            if (!root.open)
+                return;
+
+            searchInput.forceActiveFocus();
+            searchInput.cursorPosition = searchInput.text.length;
+        });
+    }
     function resetSelection() {
         root.selectedIndex = appModel.apps.length > 0 ? 0 : -1;
     }
@@ -87,6 +102,13 @@ PanelWindow {
         context: Qt.WindowShortcut
         sequence: "Up"
         onActivated: root.moveSelection(-1)
+    }
+
+    Timer {
+        id: focusRetryTimer
+        interval: 30
+        repeat: false
+        onTriggered: root.requestSearchFocus()
     }
 
     Connections {
@@ -245,17 +267,33 @@ PanelWindow {
                                     antialiasing: true
                                     color: Theme.surfaceStrong
 
+                                    readonly property bool fileReady: fileIcon.source.length > 0 && fileIcon.status === Image.Ready
+                                    readonly property bool themeReady: themeIcon.source.length > 0 && themeIcon.status === Image.Ready
+
                                     IconImage {
-                                        id: appIcon
+                                        id: themeIcon
                                         anchors.centerIn: parent
                                         implicitSize: 24
-                                        source: modelData.iconSource || ""
-                                        visible: source.length > 0 && status === Image.Ready
+                                        mipmap: true
+                                        source: modelData.themeIconSource || ""
+                                        visible: parent.themeReady
+                                    }
+
+                                    Image {
+                                        id: fileIcon
+                                        anchors.centerIn: parent
+                                        width: 24
+                                        height: 24
+                                        fillMode: Image.PreserveAspectFit
+                                        smooth: true
+                                        mipmap: true
+                                        source: modelData.fileIconSource || ""
+                                        visible: !parent.themeReady && parent.fileReady
                                     }
 
                                     Text {
                                         anchors.centerIn: parent
-                                        visible: !appIcon.visible
+                                        visible: !parent.themeReady && !parent.fileReady
                                         text: modelData.initial
                                         font.pixelSize: 16
                                         font.bold: true
@@ -365,8 +403,10 @@ PanelWindow {
     onOpenChanged: {
         if (root.open) {
             root.resetSelection();
-            searchInput.forceActiveFocus();
+            root.requestSearchFocus();
+            focusRetryTimer.restart();
         } else {
+            focusRetryTimer.stop();
             root.selectedIndex = -1;
             searchInput.text = "";
             root.selectionResetPending = false;
