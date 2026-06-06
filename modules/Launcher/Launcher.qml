@@ -68,6 +68,9 @@ PanelWindow {
         width: root.sliverW
         height: root.gripHotspotH
         opacity: root.open ? 0 : 1
+        // opacity 0 ainda recebe input em QML → desativa a captura quando aberto,
+        // pra a faixa do puxador não disparar o toggle com o painel já aberto.
+        enabled: !root.open
         Behavior on opacity { NumberAnimation { duration: Theme.tFast } }
 
         HoverHandler { id: gripHover }
