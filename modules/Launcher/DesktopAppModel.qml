@@ -86,7 +86,7 @@ QtObject {
         return entry.name || "";
     }
 
-    function normalizeEntry(entry, displayName) {
+    function normalizeEntry(entry, displayName, rowIndex) {
         const name = entry.name || "";
         const genericName = entry.genericName || "";
         const comment = entry.comment || "";
@@ -98,6 +98,7 @@ QtObject {
 
         return {
             desktopEntry: entry,
+            rowIndex: rowIndex,
             name: resolvedName,
             desktopName: name,
             genericName: genericName,
@@ -168,7 +169,7 @@ QtObject {
                 return false;
 
             used.add(key);
-            normalized.push(normalizeEntry(entry, displayName));
+            normalized.push(normalizeEntry(entry, displayName, normalized.length));
             return true;
         }
 
