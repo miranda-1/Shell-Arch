@@ -37,7 +37,7 @@ Estas regras valem para **todas as fases**, salvo autorização explícita em co
 - **sempre criar commits pequenos** e focados;
 - **nunca dar push sem autorização**.
 
-## 3. Estado atual resumido (atualizado 2026-06-06 — Fases 0–3 concluídas)
+## 3. Estado atual resumido (atualizado 2026-06-06 — Fases 0–4 concluídas funcionalmente)
 
 - trabalho direto na **`main`** (linha oficial; sem branches);
 - `shell.qml` monta **EdgeLeft**, **EdgeTop**, **EdgeRight** e **Launcher** por tela;
@@ -49,12 +49,18 @@ Estas regras valem para **todas as fases**, salvo autorização explícita em co
 - **EdgeRight aprovado e congelado** — não mexer;
 - **Launcher aprovado e estável** — abre por clique no puxador, fecha por
   clique-fora/Esc, com hardening contra clique invisível (`enabled: !root.open`);
+- **Launcher funcional concluído** — usa apps reais via `DesktopEntries`,
+  mostra 4 favoritos com query vazia, busca apps locais, aceita foco imediato no
+  campo de busca, navega por `Up`/`Down`, executa por clique/`Enter` com
+  `DesktopEntry.execute()` e fecha após executar;
 - **EdgeTop** mantém o anti-hover-acidental (delay + faixa de gatilho estreita);
 - **Fase 3 concluída**: `Divider.qml` criado e aplicado (EdgeLeft/EdgeTop), tokens
   de tipografia/glyph/dimensão adicionados ao `Theme.qml` e aplicados em
   `SliderPill`/`RingMeter`/`Dashboard`; `NowPlaying` avaliado e **não extraído**
   (mudaria layout); `ScreenFrame` marcado DEPRECATED.
-- **próxima fase ativa: Fase 4 — Launcher funcional** (começa por diagnóstico).
+- **Fase 4 concluída funcionalmente**; polimento de ícones reais fica como
+  melhoria futura, não bloqueio.
+- **próxima fase ativa: Fase 5 — Dados reais somente leitura**.
 
 ## 4. Roadmap por fases
 
@@ -125,7 +131,7 @@ Estas regras valem para **todas as fases**, salvo autorização explícita em co
 - `ScreenFrame.qml` marcado **DEPRECATED** (legado da moldura; não reativar/remover);
 - `qmllint` limpo; visual praticamente idêntico; nenhum dado real.
 
-### Fase 4 — Launcher funcional ▶ PRÓXIMA — FASE ATIVA
+### Fase 4 — Launcher funcional ✅ CONCLUÍDA FUNCIONALMENTE
 
 **Tarefas**
 - `TextInput` real;
@@ -145,14 +151,23 @@ Estas regras valem para **todas as fases**, salvo autorização explícita em co
 - visual P&B aprovado, EdgeRight congelado, Launcher estável por clique;
 - `qmllint` limpo; trabalho direto na `main`.
 
-**Como a Fase 4 deve começar — DIAGNÓSTICO, não implementação direta**
-A Fase 4 foca **apenas no Launcher funcional, com segurança**:
-1. **primeiro diagnosticar** como buscar apps `.desktop` com segurança — só leitura
-   de `~/.local/share/applications` e `/usr/share/applications` (parse de `Name`,
-   `Exec`, `Icon`, `NoDisplay`), sem escrever nada no sistema;
-2. **depois propor um plano pequeno** antes de implementar.
+**Resultado (2026-06-06): CONCLUÍDA FUNCIONALMENTE**
+- Fonte de apps: `Quickshell DesktopEntries.applications`;
+- query vazia mostra 4 favoritos: `Opera`, `Terminal`,
+  `Visual Studio Code`, `Spotify`;
+- busca real implementada;
+- foco automático no campo de busca ao abrir;
+- navegação por teclado com `Up`/`Down`;
+- `Enter` executa o item selecionado;
+- clique executa a linha;
+- execução segura com `DesktopEntry.execute()`;
+- fecha após executar;
+- `Esc` e clique-fora preservados;
+- `mask`, input region e grip preservados;
+- sem `sh -c`, shell eval ou `execString` direto;
+- ícones reais tentados, mas **adiados**; tiles usam letras por enquanto.
 
-**Restrições da Fase 4**
+**Restrições da Fase 4 (mantidas durante a implementação)**
 - não integrar dados reais além do necessário para **listar/abrir apps locais**;
 - não mexer em Hyprland real;
 - não mexer em EdgeRight;
@@ -160,7 +175,7 @@ A Fase 4 foca **apenas no Launcher funcional, com segurança**:
 - **preservar o visual e o comportamento aprovados do Launcher** (abre por clique,
   fecha por clique-fora/Esc; **não** voltar para hover puro).
 
-### Fase 5 — Dados reais somente leitura
+### Fase 5 — Dados reais somente leitura ▶ PRÓXIMA — FASE ATIVA
 
 **Tarefas**
 - hora/data reais;
@@ -174,6 +189,19 @@ A Fase 4 foca **apenas no Launcher funcional, com segurança**:
 - dados reais sem escrever no sistema;
 - sem travamentos;
 - sem polling pesado.
+
+**Critérios de ENTRADA (Fase 5)**
+- Fase 4 concluída funcionalmente (✅);
+- começar por **diagnóstico**, não implementação direta;
+- integrar **somente leitura**;
+- **não** implementar controles reais ainda;
+- **não** mexer em Hyprland real nesta etapa;
+- escolher primeiro um dado real **pequeno, seguro e de baixo risco**
+  (ex.: hora/data reais).
+
+**Pendência de polimento não-bloqueante**
+- Exibição de **ícones reais** no Launcher fica registrada como melhoria visual
+  futura e **não bloqueia** o avanço para a Fase 5.
 
 ### Fase 6 — Integração Hyprland
 

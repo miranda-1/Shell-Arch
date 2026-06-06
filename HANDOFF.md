@@ -6,7 +6,7 @@
 
 ---
 
-## 0. ESTADO ATUAL AUTORITATIVO (2026-06-06 — Fase 3 concluída)
+## 0. ESTADO ATUAL AUTORITATIVO (2026-06-06 — Fase 4 concluída funcionalmente)
 
 > **Leia esta seção primeiro.** Ela é a fonte de verdade atual e **supersede** as
 > seções históricas abaixo onde houver conflito. As seções 1–14 são registro
@@ -16,11 +16,11 @@
 **1. Linha oficial de trabalho**
 - Trabalho **direto na `main`**, **sem branches**. Não criar branch, não dar push.
 
-**2. Fase 3 — CONCLUÍDA**
-- Limpeza/componentização encerrada com sucesso. Próxima fase ativa: **Fase 4 —
-  Launcher funcional** (ver item 7).
+**2. Fase 4 — CONCLUÍDA FUNCIONALMENTE**
+- O Launcher deixou de ser fake e agora está **funcional para uso local**.
+- Próxima fase ativa recomendada: **Fase 5 — Dados reais somente leitura**.
 
-**3. Resumo das refatorações da Fase 3**
+**3. Resumo das Fases 3 e 4**
 - `components/Divider.qml` **criado** e aplicado em `EdgeLeft` e `EdgeTop`
   (extração pixel-idêntica do divisor inline duplicado).
 - `config/Theme.qml`: **tokens aditivos** de tipografia (`fsTiny…fsHero`), glyph
@@ -33,7 +33,23 @@
   mudaria o visual. Decisão registrada: não forçar.
 - `components/ScreenFrame.qml` **marcado DEPRECATED** (header de legado da moldura
   contínua). **Não reativar e não remover.**
-- `qmllint` limpo em tudo que foi tocado; **visual praticamente idêntico**.
+- `modules/Launcher/DesktopAppModel.qml` **criado** como adapter read-only para
+  `DesktopEntries.applications`.
+- O Launcher agora usa **apps reais** via `Quickshell DesktopEntries`, com query
+  vazia mostrando **4 favoritos** nesta ordem: `Opera`, `Terminal`,
+  `Visual Studio Code`, `Spotify`.
+- Busca real implementada com filtro case-insensitive por `name`, `genericName`,
+  `comment`, `categories`, `keywords` e `execString`.
+- Foco automático no campo de busca ao abrir, com retry curto para garantir que o
+  usuário possa **digitar imediatamente** sem clicar.
+- Navegação de teclado implementada com `selectedIndex` + `Shortcut` para `Up` e
+  `Down`; `Enter` executa o item selecionado.
+- Execução segura implementada com **`DesktopEntry.execute()`**. **Não** foi usado
+  `sh -c`, shell eval ou `execString` direto.
+- Após executar app: o Launcher fecha e a busca é limpa.
+- Ícones reais foram **tentados e explicitamente adiados**; os tiles voltaram a
+  usar **letras** como fallback visual simples por enquanto.
+- `qmllint` limpo em tudo que foi tocado; **comportamento aprovado preservado**.
 
 **4. Arquivos relevantes atuais**
 ```
@@ -49,7 +65,8 @@ modules/
   EdgeLeft/EdgeLeft.qml        # sidebar principal (aprovada)
   EdgeTop/EdgeTop.qml          # drawer do topo + 4 abas (anti-hover-acidental)
   EdgeRight/EdgeRight.qml      # rail + card de sliders (APROVADO/CONGELADO)
-  Launcher/Launcher.qml        # painel inferior por clique (APROVADO/ESTÁVEL)
+  Launcher/Launcher.qml        # launcher funcional: busca + navegação + execução
+  Launcher/DesktopAppModel.qml # adapter read-only de DesktopEntries + favoritos
   Dashboard/Dashboard.qml      # conteúdo da aba Dashboard
 ROADMAP.md  HANDOFF.md  README.md  docs/  assets/references/
 ```
@@ -69,17 +86,24 @@ ROADMAP.md  HANDOFF.md  README.md  docs/  assets/references/
 - **EdgeRight:** aprovado e **congelado** — não mexer.
 - **Launcher:** aprovado e estável — abre por **clique** no puxador, fecha por
   **clique-fora/Esc**, com hardening `enabled: !root.open` contra clique invisível.
-  **Não** voltar para hover puro.
+  **Não** voltar para hover puro. Agora também:
+  - mostra 4 favoritos reais quando a query está vazia;
+  - aceita digitação imediata ao abrir;
+  - busca apps locais reais;
+  - navega por `Up`/`Down`;
+  - executa o item selecionado com `Enter` ou clique;
+  - fecha após executar.
 - **EdgeTop:** mantém **anti-hover-acidental** (delay + faixa de gatilho estreita).
   **Não** alterar sua lógica de máscara/hover/trigger/delay.
-- **Dados:** tudo **fake/stub**; nenhum dado real integrado.
+- **Dados:** o único dado real integrado até aqui é o **índice local de apps**
+  via `DesktopEntries`. Demais integrações continuam fake/stub.
 
-**7. Próxima etapa recomendada — Fase 4: Launcher funcional**
-- Foco **exclusivo no Launcher** (busca + lista + abrir app), com segurança.
-- **Começar por DIAGNÓSTICO, não implementação direta:** primeiro investigar como
-  ler apps `.desktop` com segurança (só leitura de
-  `~/.local/share/applications` e `/usr/share/applications`), **depois** propor um
-  plano pequeno. Ver Fase 4 no `ROADMAP.md`.
+**7. Próxima etapa recomendada — Fase 5: Dados reais somente leitura**
+- Próximo passo recomendado: começar a **Fase 5** com um **diagnóstico pequeno e
+  seguro** de qual dado real read-only integrar primeiro.
+- Sugestão de ordem: iniciar por **hora/data reais** ou outro dado simples e sem
+  side effects, antes de tocar em métricas mais sujeitas a polling.
+- Continuar sem controles reais e sem escrita no sistema.
 
 **8. Instruções para o Codex trabalhar com segurança**
 - Antes de editar: `git status` / `git log --oneline -5` para situar-se na `main`.
@@ -92,12 +116,26 @@ ROADMAP.md  HANDOFF.md  README.md  docs/  assets/references/
 
 **9. Proibição de dados reais fora do escopo**
 - Nenhuma integração real de áudio, brilho, rede, bateria, MPRIS/Spotify,
-  CPU/GPU/mem/temp ou workspaces. Na Fase 4 o **único** acesso permitido é a
-  **leitura de arquivos `.desktop`** para listar/abrir apps locais.
+  CPU/GPU/mem/temp ou workspaces. Até o fim da Fase 4, o **único** acesso real
+  permitido/implementado foi o **índice local de apps** via `DesktopEntries`
+  para listar e abrir apps locais.
 
 **10. Proibição de autostart/deploy por enquanto**
 - **Não** criar serviço systemd, **não** configurar autostart, **não** substituir
   a Waybar e **não** fazer deploy. Isso é assunto da Fase 11, só com autorização.
+
+**11. Decisões registradas da Fase 4**
+- Fonte de apps: **`Quickshell DesktopEntries.applications`**.
+- Execução de apps: **`DesktopEntry.execute()`**.
+- Busca: filtro local no adapter `DesktopAppModel.qml`, sem prompt de comando.
+- Favoritos atuais: `Opera`, `Terminal`, `Visual Studio Code`, `Spotify`.
+- Ícones reais: **adiados**; não são bloqueio funcional da Fase 4.
+
+**12. Pendências registradas após a Fase 4**
+- Revisar futuramente exibição de **ícones reais** dos apps.
+- Revisar futuramente a política/lista de **favoritos padrão**.
+- Refinar futuramente detalhes visuais finos do Launcher sem mexer no
+  comportamento já aprovado.
 
 ---
 
