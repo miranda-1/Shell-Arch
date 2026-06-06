@@ -63,8 +63,33 @@ Singleton {
     readonly property int   iconSize:     19
     readonly property int   tooltipReserve: 280  // espaço transparente p/ tooltips
 
+    // ---- dimensões de componentes (aditivas — ainda não aplicadas) ----
+    readonly property int   rowHeight:    58   // linha de lista (ex.: resultados do launcher)
+    readonly property int   iconTile:     38   // tile arredondado com glyph
+    readonly property int   trackThin:    5    // espessura de trilha de progresso
+    readonly property int   ringWidth:    9    // espessura do anel (RingMeter)
+
     // ---- tipografia ----
     readonly property string iconFont:    "JetBrainsMono Nerd Font"
+
+    // escala tipográfica (aditiva — ainda não aplicada nos módulos)
+    readonly property int   fsTiny:       10
+    readonly property int   fsCaption:    11
+    readonly property int   fsBody:       12
+    readonly property int   fsBodyLg:     13
+    readonly property int   fsLabel:      14
+    readonly property int   fsTitle:      16
+    readonly property int   fsTitleLg:    18
+    readonly property int   fsHeadline:   22
+    readonly property int   fsDisplay:    34
+    readonly property int   fsHero:       52
+
+    // tamanhos de glyph (Nerd Font) — aditivos, ainda não aplicados
+    readonly property int   glyphSm:      14
+    readonly property int   glyphMd:      18
+    readonly property int   glyphLg:      24
+    readonly property int   glyphXl:      34
+    readonly property int   glyphHero:    60
 
     // ---- timing das animações (sensação "viva") ----
     // Só durações aqui (ints). O easing vai direto na animação:
