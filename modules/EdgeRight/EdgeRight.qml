@@ -21,10 +21,10 @@ PanelWindow {
     readonly property int railW: 34
     readonly property int handleHotspotW: 18
     readonly property int handleLen: 72
-    // hover com pequeno atraso, igual ao topo/rodapé (anti-hover-acidental)
+    // hover com atraso, igual ao topo/rodapé (anti-hover-acidental)
     property bool hovering: railHover.hovered || cardHover.hovered
     property bool open: false
-    Timer { id: openTimer; interval: 110; onTriggered: root.open = true }
+    Timer { id: openTimer; interval: Theme.tHoverOpen; onTriggered: root.open = true }
     onHoveringChanged: {
         if (root.hovering) openTimer.start()
         else { openTimer.stop(); root.open = false }

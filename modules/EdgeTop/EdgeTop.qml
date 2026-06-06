@@ -19,12 +19,14 @@ PanelWindow {
     color: "transparent"
     WlrLayershell.layer: WlrLayer.Top
 
-    readonly property int stripW: 720
+    // faixa de gatilho estreita, perto do puxador visível — não a meia-tela toda,
+    // pra não abrir o drawer ao mirar a área central por outros motivos.
+    readonly property int stripW: 260
     property int tab: 0
-    // hover com pequeno atraso: evita abrir o drawer só ao passar o mouse no topo
+    // hover com atraso: evita abrir o drawer só ao passar o mouse no topo
     property bool hovering: stripHover.hovered || drawerHover.hovered
     property bool open: false
-    Timer { id: openTimer; interval: 110; onTriggered: root.open = true }
+    Timer { id: openTimer; interval: Theme.tHoverOpen; onTriggered: root.open = true }
     onHoveringChanged: {
         if (root.hovering) openTimer.start()
         else { openTimer.stop(); root.open = false }
