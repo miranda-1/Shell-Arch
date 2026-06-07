@@ -137,9 +137,9 @@ PanelWindow {
                     }
                 }
 
-                IconButton { glyph: ""; glyphColor: Theme.textDim; label: "Wi-Fi: SHJJJ_WLAN" }
+                IconButton { glyph: ""; glyphColor: Theme.textDim; label: Network.statusText }
                 IconButton { glyph: ""; glyphColor: Theme.textDim; label: "Bluetooth" }
-                IconButton { glyph: ""; glyphColor: Theme.accent; label: "Perfil: Performance" }
+                IconButton { glyph: ""; glyphColor: Theme.accent; label: "Perfil: " + Battery.profileText }
                 IconButton { glyph: ""; glyphColor: Theme.textDim; label: "Desligar" }
             }
         }

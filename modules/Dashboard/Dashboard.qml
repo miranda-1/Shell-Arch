@@ -80,17 +80,17 @@ Item {
                     Row {
                         spacing: Theme.gap
                         Text { text: ""; font.family: Theme.iconFont; font.pixelSize: 16; color: Theme.accent }  // arch
-                        Text { text: "Arch Linux"; font.pixelSize: 15; color: Theme.text }
+                        Text { text: System.osName ? System.osName : "Linux"; font.pixelSize: 15; color: Theme.text }
                     }
                     Row {
                         spacing: Theme.gap
                         Text { text: ""; font.family: Theme.iconFont; font.pixelSize: 16; color: Theme.accent }  // wm
-                        Text { text: "Hyprland"; font.pixelSize: 15; color: Theme.text }
+                        Text { text: System.wm ? System.wm : "Hyprland"; font.pixelSize: 15; color: Theme.text }
                     }
                     Row {
                         spacing: Theme.gap
                         Text { text: ""; font.family: Theme.iconFont; font.pixelSize: 16; color: Theme.accent }  // relógio
-                        Text { text: "up 1 hour, 23 minutes"; font.pixelSize: 15; color: Theme.text }
+                        Text { text: System.uptimeText ? System.uptimeText : "—"; font.pixelSize: 15; color: Theme.text }
                     }
                     // bateria real (read-only via UPower); some em máquinas sem bateria
                     Row {
