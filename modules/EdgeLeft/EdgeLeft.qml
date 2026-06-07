@@ -1,5 +1,6 @@
 import "../../config"
 import "../../components"
+import "../../services"
 import Quickshell
 import Quickshell.Wayland
 import QtQuick
@@ -126,12 +127,12 @@ PanelWindow {
                     bottomPadding: Theme.gap / 2
                     Text {
                         anchors.horizontalCenter: parent.horizontalCenter
-                        text: "21"; color: Theme.text
+                        text: Clock.hour; color: Theme.text
                         font.pixelSize: 15; font.bold: true
                     }
                     Text {
                         anchors.horizontalCenter: parent.horizontalCenter
-                        text: "40"; color: Theme.textDim
+                        text: Clock.minute; color: Theme.textDim
                         font.pixelSize: 15
                     }
                 }

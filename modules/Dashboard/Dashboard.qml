@@ -1,5 +1,6 @@
 import "../../config"
 import "../../components"
+import "../../services"
 import QtQuick
 
 // Conteúdo da aba Dashboard (dados FAKE), inspirado no print #2.
@@ -52,14 +53,14 @@ Item {
                     spacing: 2
                     Text {
                         anchors.horizontalCenter: parent.horizontalCenter
-                        text: "21:06"
+                        text: Clock.timeText
                         font.pixelSize: Theme.fsHero
                         font.bold: true
                         color: Theme.text
                     }
                     Text {
                         anchors.horizontalCenter: parent.horizontalCenter
-                        text: "Sáb, 7 de Junho"
+                        text: Clock.dateText
                         font.pixelSize: 15
                         color: Theme.textDim
                     }
@@ -96,7 +97,7 @@ Item {
 
             CalendarCard {
                 width: 300
-                highlight: 7
+                highlight: Clock.day
             }
         }
 
