@@ -75,7 +75,7 @@ Item {
 
         Rectangle {
             id: tipBg
-            width: tipText.implicitWidth + Theme.pad * 2
+            width: Math.min(tipText.implicitWidth, 220) + Theme.pad * 2
             height: tipText.implicitHeight + Theme.gap * 2
             radius: Theme.radiusSm
             antialiasing: true
@@ -88,6 +88,8 @@ Item {
                 text: root.label
                 color: Theme.textOnAccent                 // texto claro
                 font.pixelSize: 13
+                width: Math.min(implicitWidth, 220)
+                elide: Text.ElideRight
             }
         }
     }
