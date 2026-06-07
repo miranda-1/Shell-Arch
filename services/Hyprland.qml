@@ -4,7 +4,8 @@ import Quickshell
 import Quickshell.Hyprland as QsHyprland
 import QtQuick
 
-// Serviço read-only do estado do Hyprland para a Fase 6.
+// Serviço do estado do Hyprland. Na Fase 7, a única ação mutável permitida
+// aqui é a ativação controlada de um workspace real.
 Singleton {
     id: root
 
@@ -126,6 +127,28 @@ Singleton {
 
     function isWorkspaceUrgent(workspace) {
         return !!(workspace && workspace.urgent);
+    }
+
+    function isRealWorkspace(workspace) {
+        return !!root._resolveWorkspace(workspace);
+    }
+
+    function canActivateWorkspace(workspace) {
+        const target = root._resolveWorkspace(workspace);
+
+        return !!(target && !root.isWorkspaceFocused(target) && !root.isWorkspaceActive(target));
+    }
+
+    function activateWorkspace(workspace) {
+        const target = root._resolveWorkspace(workspace);
+
+        if (!target || root.isWorkspaceFocused(target) || root.isWorkspaceActive(target))
+            return false;
+
+        // Fase 7: única ação mutável permitida. Preferimos a API typed do
+        // workspace e mantemos o activate() encapsulado apenas neste serviço.
+        target.activate();
+        return true;
     }
 
     function workspaceSortKey(workspace) {
@@ -290,6 +313,33 @@ Singleton {
             return screenName;
 
         return root._fallback;
+    }
+
+    function _resolveWorkspace(workspace) {
+        if (!workspace)
+            return null;
+
+        const list = root.workspaceList;
+
+        for (let i = 0; i < list.length; i++) {
+            const candidate = list[i];
+
+            if (candidate === workspace)
+                return root._hasWorkspaceIdentity(candidate) ? candidate : null;
+        }
+
+        return null;
+    }
+
+    function _hasWorkspaceIdentity(workspace) {
+        if (!workspace)
+            return false;
+
+        const name = root._safeString(workspace.name, "");
+        if (name)
+            return true;
+
+        return workspace.id !== undefined && workspace.id !== null && Number(workspace.id) >= 0;
     }
 
     function _modelValues(model) {
