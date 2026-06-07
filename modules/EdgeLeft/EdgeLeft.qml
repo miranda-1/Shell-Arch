@@ -13,6 +13,13 @@ PanelWindow {
     id: root
     required property var modelData
     screen: modelData
+    readonly property var workspaceDots: Hyprland.workspacesForScreen(root.screen)
+    readonly property var fallbackWorkspaceDots: [
+        { label: "1", active: true, focused: true },
+        { label: "2", active: false, focused: false },
+        { label: "3", active: false, focused: false }
+    ]
+    readonly property var visibleWorkspaceDots: root.workspaceDots.length > 0 ? root.workspaceDots : root.fallbackWorkspaceDots
 
     anchors { left: true; top: true; bottom: true }
     exclusiveZone: Theme.barW                       // reserva só a barra fina
@@ -74,15 +81,62 @@ PanelWindow {
                     anchors.horizontalCenter: parent.horizontalCenter
                     spacing: 7
                     Repeater {
-                        model: [true, false, false]
-                        delegate: Rectangle {
+                        model: root.visibleWorkspaceDots
+                        delegate: Item {
                             required property var modelData
+                            readonly property bool realWorkspace: modelData && modelData.monitor !== undefined
+                            readonly property bool activeWorkspace: realWorkspace ? Hyprland.isWorkspaceActive(modelData) : !!modelData.active
+                            readonly property bool focusedWorkspace: realWorkspace ? Hyprland.isWorkspaceFocused(modelData) : !!modelData.focused
+                            readonly property string workspaceText: realWorkspace
+                                ? "Workspace " + Hyprland.workspaceLabel(modelData)
+                                : "Workspace " + (modelData.label || "")
                             anchors.horizontalCenter: parent.horizontalCenter
-                            width: modelData ? 7 : 6
-                            height: width
-                            radius: width / 2
-                            antialiasing: true
-                            color: modelData ? Theme.accent : Theme.textFaint
+                            width: 8
+                            height: 8
+
+                            Rectangle {
+                                anchors.centerIn: parent
+                                width: parent.focusedWorkspace ? 8 : parent.activeWorkspace ? 7 : 6
+                                height: width
+                                radius: width / 2
+                                antialiasing: true
+                                color: parent.focusedWorkspace
+                                    ? Theme.accent
+                                    : parent.activeWorkspace
+                                        ? Theme.accentSoft
+                                        : Theme.textFaint
+                                scale: parent.focusedWorkspace ? 1.0 : parent.activeWorkspace ? 0.96 : 0.92
+
+                                Behavior on width { NumberAnimation { duration: Theme.tFast; easing.type: Easing.OutCubic } }
+                                Behavior on color { ColorAnimation { duration: Theme.tFast } }
+                                Behavior on scale { NumberAnimation { duration: Theme.tFast; easing.type: Easing.OutCubic } }
+                            }
+
+                            HoverHandler { id: workspaceHover }
+
+                            Rectangle {
+                                anchors.verticalCenter: parent.verticalCenter
+                                x: Theme.barW + Theme.gap + (workspaceHover.hovered ? 0 : -6)
+                                width: tipText.implicitWidth + Theme.pad * 2
+                                height: tipText.implicitHeight + Theme.pad
+                                radius: Theme.radiusSm
+                                color: Theme.accentActive
+                                border.width: 1
+                                border.color: Theme.strokeStrong
+                                opacity: workspaceHover.hovered ? 1 : 0
+                                visible: opacity > 0
+
+                                Behavior on opacity { NumberAnimation { duration: Theme.tFast } }
+                                Behavior on x { NumberAnimation { duration: Theme.tBase; easing.type: Easing.OutCubic } }
+
+                                Text {
+                                    id: tipText
+                                    anchors.centerIn: parent
+                                    text: parent.parent.workspaceText
+                                    color: Theme.textOnAccent
+                                    font.pixelSize: 12
+                                }
+                            }
                         }
                     }
                 }
