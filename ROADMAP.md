@@ -37,7 +37,7 @@ Estas regras valem para **todas as fases**, salvo autorização explícita em co
 - **sempre criar commits pequenos** e focados;
 - **nunca dar push sem autorização**.
 
-## 3. Estado atual resumido (atualizado 2026-06-07 — Fases 0–5 concluídas funcionalmente)
+## 3. Estado atual resumido (atualizado 2026-06-07 — Fase 6 implementada em código)
 
 - trabalho direto na **`main`** (linha oficial; sem branches);
 - `shell.qml` monta **EdgeLeft**, **EdgeTop**, **EdgeRight** e **Launcher** por tela;
@@ -58,8 +58,12 @@ Estas regras valem para **todas as fases**, salvo autorização explícita em co
 - **Fase 4 concluída funcionalmente**; ícones reais no Launcher como melhoria futura.
 - **Fase 5 concluída funcionalmente**: dados reais somente leitura integrados via
   `services/` (Clock, Battery, Media, Network, System); `IconButton` sem flicker;
-  tooltips corrigidos (clip + elide). Ainda fake: CPU/GPU, workspaces, SystemTray.
-- **próxima fase ativa: Fase 6 — Integração Hyprland**.
+  tooltips corrigidos (clip + elide). Ainda fake: CPU/GPU e SystemTray.
+- **Fase 6 implementada em modo read-only**: `services/Hyprland.qml`, workspaces
+  reais por tela no EdgeLeft, janela ativa real, monitor real por tela e aba
+  Workspaces da EdgeTop com dados reais de workspaces/monitores.
+- **estado atual da Fase 6**: pronta para validação visual do usuário; nenhuma
+  ação mutável liberada.
 
 ## 4. Roadmap por fases
 
@@ -192,7 +196,7 @@ Estas regras valem para **todas as fases**, salvo autorização explícita em co
 - `Dashboard`: hora/data/calendário reais, OS/WM/uptime reais, bateria real.
 - `EdgeTop` aba Media: título/artista/álbum/progresso reais (MPRIS, read-only).
 - `IconButton`: flicker fix (`hlClear`), tooltip grafite, elide para labels longos.
-- Política: `FileView` + DBus read-only permitidos; `Process`/escrita proibidos.
+- Política: `FileView` + DBus read-only permitidos; execução externa/escrita proibidas.
 - `qmllint` exit 0; working tree limpa.
 
 **Pendências não-bloqueantes (carryover p/ Fase 6+)**
@@ -201,25 +205,27 @@ Estas regras valem para **todas as fases**, salvo autorização explícita em co
 - Performance (CPU/GPU/mem/temp) — requer política dedicada.
 - Media card no Dashboard (EdgeTop tem real; Dashboard ainda fake).
 
-### Fase 6 — Integração Hyprland ▶ PRÓXIMA — FASE ATIVA
+### Fase 6 — Integração Hyprland ✅ IMPLEMENTADA NO CÓDIGO / EM VALIDAÇÃO VISUAL
 
 **Tarefas**
-- workspaces reais via Hyprland IPC;
-- workspace ativo;
-- dots de workspace no EdgeLeft (hoje fake);
-- aba Workspaces no EdgeTop (hoje fake);
-- janelas/foco (opcional, se seguro);
-- ações pequenas e seguras via IPC (somente leitura primeiro).
+- workspaces reais via módulo nativo do Hyprland; ✅
+- workspace ativo; ✅
+- dots de workspace no EdgeLeft; ✅
+- aba Workspaces no EdgeTop; ✅
+- janela ativa, classe ativa e monitores reais; ✅
+- manter tudo somente leitura nesta fase; ✅
 
 **Critério de conclusão**
-- sidebar reflete o estado real do Hyprland;
-- sem mexer em configs reais ainda.
+- sidebar reflete o estado real do Hyprland; ✅
+- EdgeTop expõe dados reais de workspaces/monitores/janela; ✅
+- sem mexer em configs reais ainda; ✅
+- validação visual final do usuário ainda pendente.
 
-**Critérios de ENTRADA (Fase 6)**
-- Fase 5 concluída funcionalmente (✅);
-- começar por **diagnóstico do IPC** antes de implementar;
-- integrar **somente leitura** primeiro;
-- **não** mexer em `~/.config/hypr` nem substituir configurações Hyprland.
+**Resultado (2026-06-07): IMPLEMENTADA EM MODO READ-ONLY**
+- `services/Hyprland.qml` consolidado sobre `Quickshell.Hyprland`.
+- `EdgeLeft`: workspaces reais por tela, estados visuais, monitor real e resumo da janela ativa.
+- `EdgeTop`: aba Workspaces com workspaces reais, janela ativa real e monitores reais.
+- sem alteração em `~/.config/hypr` e sem controles mutáveis do compositor.
 
 ### Fase 7 — Controles reais
 
@@ -306,13 +312,12 @@ Estas regras valem para **todas as fases**, salvo autorização explícita em co
 
 ## 5. Ordem imediata recomendada
 
-Fases 0–5 concluídas. A partir do estado atual:
+Fases 0–6 implementadas no código. A partir do estado atual:
 
-1. **iniciar a Fase 6 pelo DIAGNÓSTICO** — verificar API `Quickshell.Hyprland`
-   (socket IPC, eventos de workspace, lista de workspaces/janelas);
-2. propor plano pequeno: dots de workspace no EdgeLeft e aba Workspaces no EdgeTop;
-3. implementar somente leitura primeiro (workspace ativo, lista de workspaces);
-4. sem alterar `~/.config/hypr` nem configs Hyprland reais.
+1. validar visualmente a Fase 6 com troca de workspace, foco e multi-monitor;
+2. corrigir qualquer ajuste fino visual ou de fallback encontrado nessa validação;
+3. só depois disso discutir a Fase 7, com ações reais atrás de autorização explícita;
+4. seguir sem alterar `~/.config/hypr` nem configs Hyprland reais.
 
 ## 6. Commits sugeridos por tipo
 
@@ -335,6 +340,6 @@ Fases 0–5 concluídas. A partir do estado atual:
 - não criar autostart nem fazer deploy por enquanto;
 - não substituir a Waybar;
 - não mexer no sistema real (HyDE/SDDM/boot/systemd/login/bateria/PAM);
-- não usar `Process`/comandos externos sem autorização explícita;
+- não usar execução externa/comandos externos sem autorização explícita;
 - não fazer push sem autorização;
 - não commitar bug como feature aprovada.

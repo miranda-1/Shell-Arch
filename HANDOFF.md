@@ -6,7 +6,7 @@
 
 ---
 
-## 0. ESTADO ATUAL AUTORITATIVO (2026-06-07 — Fase 5 concluída funcionalmente)
+## 0. ESTADO ATUAL AUTORITATIVO (2026-06-07 — Fase 6 implementada em modo read-only)
 
 > **Leia esta seção primeiro.** Ela é a fonte de verdade atual e **supersede** as
 > seções históricas abaixo onde houver conflito. As seções 1–14 são registro
@@ -16,12 +16,13 @@
 **1. Linha oficial de trabalho**
 - Trabalho **direto na `main`**, **sem branches**. Não criar branch, não dar push.
 
-**2. Fase 5 — CONCLUÍDA FUNCIONALMENTE**
+**2. Fase 6 — IMPLEMENTADA NO CÓDIGO / VALIDAÇÃO VISUAL PENDENTE**
 - Todos os dados fake de hora/data, bateria, rede, perfil, mídia e sistema
   foram substituídos por fontes reais via serviços nativos do Quickshell.
-- Próxima fase ativa recomendada: **Fase 6 — Integração Hyprland**.
+- A shell agora também reage ao estado real do Hyprland com leitura nativa do
+  módulo `Quickshell.Hyprland`, sem controle mutável.
 
-**3. Resumo das Fases 3, 4 e 5**
+**3. Resumo das Fases 3, 4, 5 e 6**
 
 *Fases 3 e 4:*
 - `Divider.qml` criado e aplicado (EdgeLeft/EdgeTop). Tokens aditivos em `Theme.qml`.
@@ -48,7 +49,7 @@
   - **`System.qml`** — `FileView /etc/os-release` → `osName`;
     `Quickshell.env("XDG_CURRENT_DESKTOP")` → `wm`;
     `FileView /proc/uptime` + delta `Date.now()` + Timer 1×/min → `uptimeText`.
-    **`FileView` lê arquivo — NÃO é comando externo/Process.**
+    **`FileView` lê arquivo — não é comando externo nem spawn separado.**
 - Módulos atualizados com dados reais:
   - `EdgeLeft`: `Clock.hour`/`minute`, `Network.statusText`, `Battery.profileText`;
     `shellShape.clip: false` (antes `clip: true` cortava tooltips em x>46px).
@@ -56,6 +57,15 @@
     `System.osName`/`wm`/`uptimeText` (com fallbacks), `Battery.available`/`statusText`.
   - `EdgeTop` aba Media: `Media.title`/`artist`/`album`/`isPlaying`/`progress`/
     `positionText`/`lengthText` — read-only.
+- *Fase 6 — Integração Hyprland read-only (implementada em 2026-06-07):*
+  - `services/Hyprland.qml` consolidado como adapter somente leitura do singleton
+    nativo `Quickshell.Hyprland`.
+  - `EdgeLeft`: dots de workspace reais por tela, monitor real por `screen`,
+    estados `focused`/`active`/ocupado/vazio/urgente, tooltip detalhado e
+    indicação discreta da janela ativa real.
+  - `EdgeTop` aba Workspaces: lista real de workspaces, resumo da janela ativa
+    real e resumo de monitores reais.
+  - Sem controle mutável do compositor; apenas leitura e derivação para UI.
 - `IconButton.qml` — três correções acumuladas:
   - **Flicker fix:** `hlClear = Qt.rgba(accentSoft, 0)` — nunca animar `color` para
     `"transparent"` (`#00000000` = preto alpha 0 → interpola via preto = flash).
@@ -64,7 +74,7 @@
   - **Overflow fix:** `elide: Text.ElideRight` + `width: Math.min(implicitWidth, 220)`;
     `tipBg.width: Math.min(tipText.implicitWidth, 220) + Theme.pad * 2`.
 - Política confirmada pelo usuário: `FileView` + DBus read-only → **permitidos**.
-  `Process`/escrita/alteração de estado → **proibidos sem autorização explícita**.
+  execução externa/escrita/alteração de estado → **proibidas sem autorização explícita**.
 - `qmllint` exit 0 em todos os arquivos tocados; working tree limpa.
 
 **4. Arquivos relevantes atuais**
@@ -78,8 +88,8 @@ components/
   SliderPill.qml  RingMeter.qml  CalendarCard.qml  SectionHeader.qml
   ScreenFrame.qml              # DEPRECATED/legado — inativo, não importado
 services/                      # NOVO (Fase 5) — singletons read-only
-  qmldir                       # registra Clock, Battery, Media, Network, System
-  Clock.qml   Battery.qml   Media.qml   Network.qml   System.qml
+  qmldir                       # registra Clock, Battery, Media, Network, System, Hyprland
+  Clock.qml   Battery.qml   Media.qml   Network.qml   System.qml   Hyprland.qml
 modules/
   EdgeLeft/EdgeLeft.qml        # sidebar principal (aprovada)
   EdgeTop/EdgeTop.qml          # drawer do topo + 4 abas (anti-hover-acidental)
@@ -120,12 +130,12 @@ ROADMAP.md  HANDOFF.md  README.md  docs/  assets/references/
 - **Tooltip grafite + clip:false:** aprovados. `hlClear` flicker fix aprovado.
   **Não reverter.**
 
-**7. Próxima etapa recomendada — Fase 6: Integração Hyprland**
-- Próximo passo: **Fase 6** — workspaces reais via Hyprland IPC.
-- Candidatos de integração: dots de workspace no EdgeLeft e aba Workspaces no EdgeTop.
-- Começar com **diagnóstico do IPC** (API `Quickshell.Hyprland` ou socket).
-- Somente leitura primeiro; sem alterar `~/.config/hypr` nem configs reais.
-- Continuar sem controles reais e sem escrita no sistema.
+**7. Próxima etapa recomendada — validar a Fase 6 e preparar a Fase 7**
+- Próximo passo imediato: validar visualmente a integração read-only do Hyprland
+  em todos os monitores.
+- Se aprovado, a próxima fase natural é a **Fase 7 — controles reais**, sempre
+  atrás de autorização explícita para qualquer ação mutável.
+- Continuar sem alterar `~/.config/hypr` nem configs reais.
 
 **8. Instruções para o Codex trabalhar com segurança**
 - Antes de editar: `git status` / `git log --oneline -5` para situar-se na `main`.
@@ -138,12 +148,13 @@ ROADMAP.md  HANDOFF.md  README.md  docs/  assets/references/
 
 **9. Dados reais: integrados vs. ainda proibidos/pendentes**
 - **Integrados (read-only):** hora/data, calendário, bateria, rede/SSID, perfil de
-  energia, mídia/MPRIS (título/artista/álbum/progresso), OS/WM/uptime, apps locais.
+  energia, mídia/MPRIS (título/artista/álbum/progresso), OS/WM/uptime, apps locais,
+  workspaces reais, monitor real por tela, janela ativa real e classe ativa real.
 - **Pendente sem autorização:** áudio/volume (controle), brilho (controle), MPRIS
   play/pause/seek (controle), CPU/GPU/mem/temp (`FileView /proc` — requer política),
-  workspaces Hyprland (Fase 6, read-only primeiro), SystemTray real (API disponível;
+  SystemTray real (API disponível;
   requer Image delegate + política sobre activate).
-- **`Process` e comandos externos** continuam **proibidos** sem autorização explícita.
+- Spawn externo e comandos externos continuam **proibidos** sem autorização explícita.
 
 **10. Proibição de autostart/deploy por enquanto**
 - **Não** criar serviço systemd, **não** configurar autostart, **não** substituir
@@ -168,12 +179,12 @@ ROADMAP.md  HANDOFF.md  README.md  docs/  assets/references/
 - `PowerProfiles.profile`: apenas leitura; NÃO altera perfil de energia.
 - Overflow tooltip: `Math.min(implicitWidth, 220)` + `elide: Text.ElideRight`.
 
-**13. Pendências registradas após a Fase 5**
+**13. Pendências registradas após a Fase 6**
 - **SystemTray real:** `StatusNotifierItem` disponível; adiado — requer `Image` + `Repeater`
   dinâmico + política sobre `activate`/menu.
 - **Performance (CPU/GPU/mem/temp):** sem serviço nativo; requer `FileView /proc`+`/sys`
   + política dedicada.
-- **Workspaces reais:** Fase 6 (Hyprland IPC).
+- **Ações controladas de workspace/janela:** fase futura, só com aprovação explícita.
 - **Ícones reais no Launcher:** carryover da Fase 4.
 - **Media card no Dashboard:** ainda fake; EdgeTop já tem MPRIS real.
 - **Nome do mês no CalendarCard:** `Clock.monthName` disponível, não exibido na grade.
@@ -498,11 +509,7 @@ qs -p ~/Projetos/ui-shell-prototype/shell.qml
 
 Fechar:
 
-```sh
-qs kill
-```
-
-ou `Ctrl+C` no terminal.
+Interromper a instância no terminal em que ela foi iniciada (`Ctrl+C`).
 
 ---
 
@@ -603,11 +610,8 @@ Rodar (o usuário roda; a IA não executa):
 qs -p ~/Projetos/ui-shell-prototype/shell.qml
 ```
 
-Fechar:
-```sh
-qs kill
-```
-ou `Ctrl+C` no terminal onde rodou. A Waybar do HyDE continua intacta por baixo.
+Fechar: interromper a instância no terminal onde rodou (`Ctrl+C`). A Waybar do
+HyDE continua intacta por baixo.
 
 ---
 
@@ -690,7 +694,7 @@ para o launcher; a direita, um puxador/trilho curto com controles escondidos
 em repouso.
 Nenhum dado real foi integrado ainda.
 Comando de teste atual: `qs -p ~/Projetos/ui-shell-prototype/shell.qml`.
-Para fechar: `qs kill` ou `Ctrl+C`.
+Para fechar: interromper a instância no terminal usado para iniciar.
 Próximo passo recomendado: **Leva D**, focada em polimento visual/UX,
 redução de abertura acidental, revisão de multi-monitor e preparação gradual
 para futura integração de dados reais.
@@ -806,7 +810,7 @@ qmllint modules/Launcher/Launcher.qml
 
 ---
 
-## 15. Resumo rápido para próximo chat (atualizado 2026-06-07 — pós-Fase 5)
+## 15. Resumo rápido para próximo chat (atualizado 2026-06-07 — pós-Fase 6)
 
 > Esta é a seção de entrada rápida. Leia a Seção 0 para detalhes completos.
 
@@ -814,24 +818,24 @@ Projeto isolado em `~/Projetos/ui-shell-prototype/`, feito em **Quickshell/QML**
 rodando por cima do HyDE/Waybar via `qs -p` **sem alterar nada do sistema**.
 
 **Estado atual:**
-- `EdgeLeft` (sidebar): barra vertical P&B/grafite com relógio, Wi-Fi, perfil — dados reais.
-- `EdgeTop` (drawer topo): abas Dashboard/Media/Performance/Workspaces — Media real, resto parcialmente fake.
+- `EdgeLeft` (sidebar): barra vertical P&B/grafite com relógio, Wi-Fi, perfil, workspaces reais por tela, monitor real e tooltip discreto da janela ativa.
+- `EdgeTop` (drawer topo): abas Dashboard/Media/Performance/Workspaces — Media real; aba Workspaces agora usa dados reais do Hyprland.
 - `EdgeRight` (sliders): **aprovado e congelado** — não mexer.
 - `Launcher` (rodapé): abre por clique, busca apps reais, executa via `DesktopEntry.execute()`.
 - `Dashboard` (aba): hora/data/calendário/bateria/OS/WM/uptime reais.
-- `services/`: Clock, Battery, Media, Network, System — todos `pragma Singleton`, todos read-only.
+- `services/`: Clock, Battery, Media, Network, System e Hyprland — todos `pragma Singleton`, todos read-only.
 - Tooltips: `clip: false` no `shellShape`, chip grafite, elide para labels longos, sem flicker.
 - **`ScreenFrame.qml`** existe mas está INATIVO (DEPRECATED) — não reativar.
-- `git status` limpo; working tree sem pendências.
+- `qmllint` limpo em `services/Hyprland.qml`, `modules/EdgeLeft/EdgeLeft.qml` e `modules/EdgeTop/EdgeTop.qml`.
 
-**O que ainda é fake:** CPU/GPU/mem/temp (Performance), workspaces Hyprland, SystemTray real, media card do Dashboard.
+**O que ainda é fake:** CPU/GPU/mem/temp (Performance), SystemTray real, media card do Dashboard.
 
-**Próxima fase: Fase 6 — Integração Hyprland (workspaces reais, read-only primeiro).**
+**Próxima fase:** validar visualmente a Fase 6 e, depois de aprovação, planejar a Fase 7.
 
 **Regras que nunca mudam:**
 - Somente dentro de `~/Projetos/ui-shell-prototype/`.
 - Não mexer em HyDE/Waybar/Hyprland/SDDM/boot/systemd/login/bateria/PAM.
-- `Process`/comandos externos proibidos sem autorização. `FileView`+DBus read-only: ok.
+- spawn externo/comandos externos proibidos sem autorização. `FileView`+DBus read-only: ok.
 - Não dar push. Não criar branch. Não commitar sem aprovação.
 - `qs -p`: só o usuário roda (não a IA).
 
