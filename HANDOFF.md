@@ -6,7 +6,7 @@
 
 ---
 
-## 0. ESTADO ATUAL AUTORITATIVO (2026-06-06 — Fase 4 concluída funcionalmente)
+## 0. ESTADO ATUAL AUTORITATIVO (2026-06-07 — Fase 5 concluída funcionalmente)
 
 > **Leia esta seção primeiro.** Ela é a fonte de verdade atual e **supersede** as
 > seções históricas abaixo onde houver conflito. As seções 1–14 são registro
@@ -16,40 +16,56 @@
 **1. Linha oficial de trabalho**
 - Trabalho **direto na `main`**, **sem branches**. Não criar branch, não dar push.
 
-**2. Fase 4 — CONCLUÍDA FUNCIONALMENTE**
-- O Launcher deixou de ser fake e agora está **funcional para uso local**.
-- Próxima fase ativa recomendada: **Fase 5 — Dados reais somente leitura**.
+**2. Fase 5 — CONCLUÍDA FUNCIONALMENTE**
+- Todos os dados fake de hora/data, bateria, rede, perfil, mídia e sistema
+  foram substituídos por fontes reais via serviços nativos do Quickshell.
+- Próxima fase ativa recomendada: **Fase 6 — Integração Hyprland**.
 
-**3. Resumo das Fases 3 e 4**
-- `components/Divider.qml` **criado** e aplicado em `EdgeLeft` e `EdgeTop`
-  (extração pixel-idêntica do divisor inline duplicado).
-- `config/Theme.qml`: **tokens aditivos** de tipografia (`fsTiny…fsHero`), glyph
-  (`glyphSm…glyphHero`) e dimensão (`rowHeight`, `iconTile`, `trackThin`,
-  `ringWidth`). Nada removido/renomeado.
-- Tokens **aplicados** (valores idênticos) em `SliderPill`, `RingMeter` e
-  `Dashboard`.
-- `NowPlaying.qml` foi **avaliado e NÃO criado**: os blocos de mídia do EdgeTop e
-  do Dashboard têm layouts divergentes (Row×Column, tamanhos, seek bar) — extrair
-  mudaria o visual. Decisão registrada: não forçar.
-- `components/ScreenFrame.qml` **marcado DEPRECATED** (header de legado da moldura
-  contínua). **Não reativar e não remover.**
-- `modules/Launcher/DesktopAppModel.qml` **criado** como adapter read-only para
-  `DesktopEntries.applications`.
-- O Launcher agora usa **apps reais** via `Quickshell DesktopEntries`, com query
-  vazia mostrando **4 favoritos** nesta ordem: `Opera`, `Terminal`,
-  `Visual Studio Code`, `Spotify`.
-- Busca real implementada com filtro case-insensitive por `name`, `genericName`,
-  `comment`, `categories`, `keywords` e `execString`.
-- Foco automático no campo de busca ao abrir, com retry curto para garantir que o
-  usuário possa **digitar imediatamente** sem clicar.
-- Navegação de teclado implementada com `selectedIndex` + `Shortcut` para `Up` e
-  `Down`; `Enter` executa o item selecionado.
-- Execução segura implementada com **`DesktopEntry.execute()`**. **Não** foi usado
-  `sh -c`, shell eval ou `execString` direto.
-- Após executar app: o Launcher fecha e a busca é limpa.
-- Ícones reais foram **tentados e explicitamente adiados**; os tiles voltaram a
-  usar **letras** como fallback visual simples por enquanto.
-- `qmllint` limpo em tudo que foi tocado; **comportamento aprovado preservado**.
+**3. Resumo das Fases 3, 4 e 5**
+
+*Fases 3 e 4:*
+- `Divider.qml` criado e aplicado (EdgeLeft/EdgeTop). Tokens aditivos em `Theme.qml`.
+- `NowPlaying.qml` avaliado e NÃO criado (layouts EdgeTop≠Dashboard divergem).
+- `ScreenFrame.qml` marcado **DEPRECATED** — não reativar.
+- `DesktopAppModel.qml` criado como adapter read-only de `DesktopEntries`.
+- Launcher funcional: 4 favoritos reais, busca, foco imediato, Up/Down, Enter executa,
+  fecha após executar. Execução via `DesktopEntry.execute()` (sem `sh -c`).
+- Ícones reais: tentados e adiados; tiles usam letras por enquanto.
+
+*Fase 5 — Dados reais somente leitura (concluída 2026-06-07):*
+- `services/qmldir` + 5 singletons (`pragma Singleton` + `Singleton {}`):
+  - **`Clock.qml`** — `SystemClock` evented (precisão minuto); `hour`, `minute`,
+    `timeText`, `dateText` pt-BR, `calendarCells`, `currentDay`, `monthName`.
+  - **`Battery.qml`** — `UPower.displayDevice` + `PowerProfiles` (leitura);
+    `available`, `percent`, `charging`, `full`, `statusText`, `profileText`.
+    Nota: `percentage` do UPower é fração 0–1; multiplicar por 100.
+  - **`Media.qml`** — `Mpris.players` (leitura); player ativo = primeiro `isPlaying`,
+    fallback ao primeiro da lista; `title`, `artist`, `album`, `progress`,
+    `positionText`, `lengthText`, `isPlaying`. Timer 1s emite `positionChanged()`
+    (re-leitura de posição, NÃO controle).
+  - **`Network.qml`** — `Quickshell.Networking` (NetworkManager); `ssid`, `connected`,
+    `statusText`; null-guards completos em device/networks/values.
+  - **`System.qml`** — `FileView /etc/os-release` → `osName`;
+    `Quickshell.env("XDG_CURRENT_DESKTOP")` → `wm`;
+    `FileView /proc/uptime` + delta `Date.now()` + Timer 1×/min → `uptimeText`.
+    **`FileView` lê arquivo — NÃO é comando externo/Process.**
+- Módulos atualizados com dados reais:
+  - `EdgeLeft`: `Clock.hour`/`minute`, `Network.statusText`, `Battery.profileText`;
+    `shellShape.clip: false` (antes `clip: true` cortava tooltips em x>46px).
+  - `Dashboard`: `Clock.timeText`/`dateText`, `calendarCells`/`currentDay`,
+    `System.osName`/`wm`/`uptimeText` (com fallbacks), `Battery.available`/`statusText`.
+  - `EdgeTop` aba Media: `Media.title`/`artist`/`album`/`isPlaying`/`progress`/
+    `positionText`/`lengthText` — read-only.
+- `IconButton.qml` — três correções acumuladas:
+  - **Flicker fix:** `hlClear = Qt.rgba(accentSoft, 0)` — nunca animar `color` para
+    `"transparent"` (`#00000000` = preto alpha 0 → interpola via preto = flash).
+  - **Tooltip grafite:** `Card` → `Rectangle` (`color: accentActive`, borda sutil,
+    texto `textOnAccent`); sem MultiEffect layer; anima só `opacity`/`x`.
+  - **Overflow fix:** `elide: Text.ElideRight` + `width: Math.min(implicitWidth, 220)`;
+    `tipBg.width: Math.min(tipText.implicitWidth, 220) + Theme.pad * 2`.
+- Política confirmada pelo usuário: `FileView` + DBus read-only → **permitidos**.
+  `Process`/escrita/alteração de estado → **proibidos sem autorização explícita**.
+- `qmllint` exit 0 em todos os arquivos tocados; working tree limpa.
 
 **4. Arquivos relevantes atuais**
 ```
@@ -61,6 +77,9 @@ components/
   Card.qml  IconButton.qml  Pill.qml  TabButton.qml
   SliderPill.qml  RingMeter.qml  CalendarCard.qml  SectionHeader.qml
   ScreenFrame.qml              # DEPRECATED/legado — inativo, não importado
+services/                      # NOVO (Fase 5) — singletons read-only
+  qmldir                       # registra Clock, Battery, Media, Network, System
+  Clock.qml   Battery.qml   Media.qml   Network.qml   System.qml
 modules/
   EdgeLeft/EdgeLeft.qml        # sidebar principal (aprovada)
   EdgeTop/EdgeTop.qml          # drawer do topo + 4 abas (anti-hover-acidental)
@@ -95,14 +114,17 @@ ROADMAP.md  HANDOFF.md  README.md  docs/  assets/references/
   - fecha após executar.
 - **EdgeTop:** mantém **anti-hover-acidental** (delay + faixa de gatilho estreita).
   **Não** alterar sua lógica de máscara/hover/trigger/delay.
-- **Dados:** o único dado real integrado até aqui é o **índice local de apps**
-  via `DesktopEntries`. Demais integrações continuam fake/stub.
+- **Dados reais (Fase 5):** hora/data, calendário, bateria, rede/SSID, perfil de
+  energia, mídia (MPRIS), OS/WM/uptime — todos integrados em `services/` (read-only).
+  **Não regredir para valores fake.**
+- **Tooltip grafite + clip:false:** aprovados. `hlClear` flicker fix aprovado.
+  **Não reverter.**
 
-**7. Próxima etapa recomendada — Fase 5: Dados reais somente leitura**
-- Próximo passo recomendado: começar a **Fase 5** com um **diagnóstico pequeno e
-  seguro** de qual dado real read-only integrar primeiro.
-- Sugestão de ordem: iniciar por **hora/data reais** ou outro dado simples e sem
-  side effects, antes de tocar em métricas mais sujeitas a polling.
+**7. Próxima etapa recomendada — Fase 6: Integração Hyprland**
+- Próximo passo: **Fase 6** — workspaces reais via Hyprland IPC.
+- Candidatos de integração: dots de workspace no EdgeLeft e aba Workspaces no EdgeTop.
+- Começar com **diagnóstico do IPC** (API `Quickshell.Hyprland` ou socket).
+- Somente leitura primeiro; sem alterar `~/.config/hypr` nem configs reais.
 - Continuar sem controles reais e sem escrita no sistema.
 
 **8. Instruções para o Codex trabalhar com segurança**
@@ -114,11 +136,14 @@ ROADMAP.md  HANDOFF.md  README.md  docs/  assets/references/
 - Preservar visual/comportamento aprovados (EdgeRight, Launcher, EdgeTop).
 - Em dúvida sobre tocar algo sensível (máscara/hover/sistema), **parar e perguntar**.
 
-**9. Proibição de dados reais fora do escopo**
-- Nenhuma integração real de áudio, brilho, rede, bateria, MPRIS/Spotify,
-  CPU/GPU/mem/temp ou workspaces. Até o fim da Fase 4, o **único** acesso real
-  permitido/implementado foi o **índice local de apps** via `DesktopEntries`
-  para listar e abrir apps locais.
+**9. Dados reais: integrados vs. ainda proibidos/pendentes**
+- **Integrados (read-only):** hora/data, calendário, bateria, rede/SSID, perfil de
+  energia, mídia/MPRIS (título/artista/álbum/progresso), OS/WM/uptime, apps locais.
+- **Pendente sem autorização:** áudio/volume (controle), brilho (controle), MPRIS
+  play/pause/seek (controle), CPU/GPU/mem/temp (`FileView /proc` — requer política),
+  workspaces Hyprland (Fase 6, read-only primeiro), SystemTray real (API disponível;
+  requer Image delegate + política sobre activate).
+- **`Process` e comandos externos** continuam **proibidos** sem autorização explícita.
 
 **10. Proibição de autostart/deploy por enquanto**
 - **Não** criar serviço systemd, **não** configurar autostart, **não** substituir
@@ -131,11 +156,31 @@ ROADMAP.md  HANDOFF.md  README.md  docs/  assets/references/
 - Favoritos atuais: `Opera`, `Terminal`, `Visual Studio Code`, `Spotify`.
 - Ícones reais: **adiados**; não são bloqueio funcional da Fase 4.
 
-**12. Pendências registradas após a Fase 4**
-- Revisar futuramente exibição de **ícones reais** dos apps.
-- Revisar futuramente a política/lista de **favoritos padrão**.
-- Refinar futuramente detalhes visuais finos do Launcher sem mexer no
-  comportamento já aprovado.
+**12. Decisões registradas da Fase 5**
+- Clock: `SystemClock` com `precision: SystemClock.Minutes` (evented; sem Timer manual).
+- Battery: `UPower.displayDevice`; `percentage` é fração 0–1 → multiplicar por 100.
+- Media: player ativo = primeiro `isPlaying`; posição via `positionChanged()` emit (leitura).
+- Network: null-guards obrigatórios em todos os acessos a device/networks/values.
+- System: `FileView` em `/etc/os-release` e `/proc/uptime` — leitura, NÃO processo.
+- Uptime: lido uma vez em `Component.onCompleted`; drift corrigido com `Date.now()`.
+- Tooltip: `clip: false` em `shellShape`; `Rectangle` (não `Card`) evita layer churn.
+- Flicker: nunca animar `color → "transparent"` — usar `Qt.rgba(r, g, b, 0)`.
+- `PowerProfiles.profile`: apenas leitura; NÃO altera perfil de energia.
+- Overflow tooltip: `Math.min(implicitWidth, 220)` + `elide: Text.ElideRight`.
+
+**13. Pendências registradas após a Fase 5**
+- **SystemTray real:** `StatusNotifierItem` disponível; adiado — requer `Image` + `Repeater`
+  dinâmico + política sobre `activate`/menu.
+- **Performance (CPU/GPU/mem/temp):** sem serviço nativo; requer `FileView /proc`+`/sys`
+  + política dedicada.
+- **Workspaces reais:** Fase 6 (Hyprland IPC).
+- **Ícones reais no Launcher:** carryover da Fase 4.
+- **Media card no Dashboard:** ainda fake; EdgeTop já tem MPRIS real.
+- **Nome do mês no CalendarCard:** `Clock.monthName` disponível, não exibido na grade.
+
+**14. Pendências de Fases anteriores (carryover)**
+- Revisar futuramente a política/lista de **favoritos padrão** do Launcher.
+- Refinar detalhes visuais do Launcher sem mexer no comportamento aprovado.
 
 ---
 
@@ -752,9 +797,48 @@ qmllint modules/Launcher/Launcher.qml
   **manter hover só como preview**, se necessário.
 - Foco da próxima etapa: **somente o Launcher**.
 
-### 14.10 NÃO FAZER
+### 14.10 NÃO FAZER (registro histórico da Leva D)
 - **Não** mexer no EdgeRight (ficou bom).
 - **Não** reativar `ScreenFrame`.
 - **Não** integrar dados reais.
 - **Não** mexer no sistema real (Waybar/Hypr/HyDE/SDDM/boot/systemd/login/etc.).
 - **Não** commitar como "aprovado" algo ainda bugado (Launcher).
+
+---
+
+## 15. Resumo rápido para próximo chat (atualizado 2026-06-07 — pós-Fase 5)
+
+> Esta é a seção de entrada rápida. Leia a Seção 0 para detalhes completos.
+
+Projeto isolado em `~/Projetos/ui-shell-prototype/`, feito em **Quickshell/QML**,
+rodando por cima do HyDE/Waybar via `qs -p` **sem alterar nada do sistema**.
+
+**Estado atual:**
+- `EdgeLeft` (sidebar): barra vertical P&B/grafite com relógio, Wi-Fi, perfil — dados reais.
+- `EdgeTop` (drawer topo): abas Dashboard/Media/Performance/Workspaces — Media real, resto parcialmente fake.
+- `EdgeRight` (sliders): **aprovado e congelado** — não mexer.
+- `Launcher` (rodapé): abre por clique, busca apps reais, executa via `DesktopEntry.execute()`.
+- `Dashboard` (aba): hora/data/calendário/bateria/OS/WM/uptime reais.
+- `services/`: Clock, Battery, Media, Network, System — todos `pragma Singleton`, todos read-only.
+- Tooltips: `clip: false` no `shellShape`, chip grafite, elide para labels longos, sem flicker.
+- **`ScreenFrame.qml`** existe mas está INATIVO (DEPRECATED) — não reativar.
+- `git status` limpo; working tree sem pendências.
+
+**O que ainda é fake:** CPU/GPU/mem/temp (Performance), workspaces Hyprland, SystemTray real, media card do Dashboard.
+
+**Próxima fase: Fase 6 — Integração Hyprland (workspaces reais, read-only primeiro).**
+
+**Regras que nunca mudam:**
+- Somente dentro de `~/Projetos/ui-shell-prototype/`.
+- Não mexer em HyDE/Waybar/Hyprland/SDDM/boot/systemd/login/bateria/PAM.
+- `Process`/comandos externos proibidos sem autorização. `FileView`+DBus read-only: ok.
+- Não dar push. Não criar branch. Não commitar sem aprovação.
+- `qs -p`: só o usuário roda (não a IA).
+
+**Comandos de retomada:**
+```sh
+cd ~/Projetos/ui-shell-prototype/
+git log --oneline -5
+git status
+qs -p ~/Projetos/ui-shell-prototype/shell.qml  # usuário roda, não a IA
+```

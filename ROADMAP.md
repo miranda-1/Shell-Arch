@@ -37,13 +37,12 @@ Estas regras valem para **todas as fases**, salvo autorização explícita em co
 - **sempre criar commits pequenos** e focados;
 - **nunca dar push sem autorização**.
 
-## 3. Estado atual resumido (atualizado 2026-06-06 — Fases 0–4 concluídas funcionalmente)
+## 3. Estado atual resumido (atualizado 2026-06-07 — Fases 0–5 concluídas funcionalmente)
 
 - trabalho direto na **`main`** (linha oficial; sem branches);
 - `shell.qml` monta **EdgeLeft**, **EdgeTop**, **EdgeRight** e **Launcher** por tela;
 - o projeto roda via **`qs -p`** (entrypoint isolado, não substitui nada do sistema);
 - **`ScreenFrame` está inativo** e marcado **DEPRECATED** (não importado, não remover);
-- todos os **dados são fake/stub** — nenhum dado real integrado;
 - **multi-monitor ativo** — uma instância de cada borda em todos os monitores;
 - **visual P&B/grafite aprovado** (tema claro monocromático);
 - **EdgeRight aprovado e congelado** — não mexer;
@@ -54,13 +53,13 @@ Estas regras valem para **todas as fases**, salvo autorização explícita em co
   campo de busca, navega por `Up`/`Down`, executa por clique/`Enter` com
   `DesktopEntry.execute()` e fecha após executar;
 - **EdgeTop** mantém o anti-hover-acidental (delay + faixa de gatilho estreita);
-- **Fase 3 concluída**: `Divider.qml` criado e aplicado (EdgeLeft/EdgeTop), tokens
-  de tipografia/glyph/dimensão adicionados ao `Theme.qml` e aplicados em
-  `SliderPill`/`RingMeter`/`Dashboard`; `NowPlaying` avaliado e **não extraído**
-  (mudaria layout); `ScreenFrame` marcado DEPRECATED.
-- **Fase 4 concluída funcionalmente**; polimento de ícones reais fica como
-  melhoria futura, não bloqueio.
-- **próxima fase ativa: Fase 5 — Dados reais somente leitura**.
+- **Fase 3 concluída**: `Divider.qml` criado e aplicado, tokens de
+  tipografia/glyph/dimensão no `Theme.qml`, `ScreenFrame` DEPRECATED.
+- **Fase 4 concluída funcionalmente**; ícones reais no Launcher como melhoria futura.
+- **Fase 5 concluída funcionalmente**: dados reais somente leitura integrados via
+  `services/` (Clock, Battery, Media, Network, System); `IconButton` sem flicker;
+  tooltips corrigidos (clip + elide). Ainda fake: CPU/GPU, workspaces, SystemTray.
+- **próxima fase ativa: Fase 6 — Integração Hyprland**.
 
 ## 4. Roadmap por fases
 
@@ -175,45 +174,52 @@ Estas regras valem para **todas as fases**, salvo autorização explícita em co
 - **preservar o visual e o comportamento aprovados do Launcher** (abre por clique,
   fecha por clique-fora/Esc; **não** voltar para hover puro).
 
-### Fase 5 — Dados reais somente leitura ▶ PRÓXIMA — FASE ATIVA
+### Fase 5 — Dados reais somente leitura ✅ CONCLUÍDA FUNCIONALMENTE
 
 **Tarefas**
-- hora/data reais;
-- bateria;
-- CPU/RAM;
-- temperatura se disponível;
-- nome real do monitor;
-- dados read-only em `services/`.
+- hora/data reais; ✅
+- bateria (UPower); ✅
+- rede/SSID (Networking); ✅
+- perfil de energia (PowerProfiles); ✅
+- mídia/MPRIS; ✅
+- OS/WM/uptime (FileView + env); ✅
+- CPU/RAM/temp: ainda fake (sem serviço nativo; Fase futura).
 
-**Critério de conclusão**
-- dados reais sem escrever no sistema;
-- sem travamentos;
-- sem polling pesado.
+**Resultado (2026-06-07): CONCLUÍDA FUNCIONALMENTE**
+- `services/` criado com 5 singletons (`pragma Singleton`): `Clock`, `Battery`,
+  `Media`, `Network`, `System`.
+- `EdgeLeft`: relógio real, SSID real, perfil real; tooltip sem clip/flicker.
+- `Dashboard`: hora/data/calendário reais, OS/WM/uptime reais, bateria real.
+- `EdgeTop` aba Media: título/artista/álbum/progresso reais (MPRIS, read-only).
+- `IconButton`: flicker fix (`hlClear`), tooltip grafite, elide para labels longos.
+- Política: `FileView` + DBus read-only permitidos; `Process`/escrita proibidos.
+- `qmllint` exit 0; working tree limpa.
 
-**Critérios de ENTRADA (Fase 5)**
-- Fase 4 concluída funcionalmente (✅);
-- começar por **diagnóstico**, não implementação direta;
-- integrar **somente leitura**;
-- **não** implementar controles reais ainda;
-- **não** mexer em Hyprland real nesta etapa;
-- escolher primeiro um dado real **pequeno, seguro e de baixo risco**
-  (ex.: hora/data reais).
+**Pendências não-bloqueantes (carryover p/ Fase 6+)**
+- Ícones reais no Launcher (Fase 4 carryover).
+- SystemTray real (API disponível; adiado).
+- Performance (CPU/GPU/mem/temp) — requer política dedicada.
+- Media card no Dashboard (EdgeTop tem real; Dashboard ainda fake).
 
-**Pendência de polimento não-bloqueante**
-- Exibição de **ícones reais** no Launcher fica registrada como melhoria visual
-  futura e **não bloqueia** o avanço para a Fase 5.
-
-### Fase 6 — Integração Hyprland
+### Fase 6 — Integração Hyprland ▶ PRÓXIMA — FASE ATIVA
 
 **Tarefas**
-- workspaces reais;
+- workspaces reais via Hyprland IPC;
 - workspace ativo;
-- janelas/foco;
-- ações pequenas e seguras via IPC.
+- dots de workspace no EdgeLeft (hoje fake);
+- aba Workspaces no EdgeTop (hoje fake);
+- janelas/foco (opcional, se seguro);
+- ações pequenas e seguras via IPC (somente leitura primeiro).
 
 **Critério de conclusão**
 - sidebar reflete o estado real do Hyprland;
 - sem mexer em configs reais ainda.
+
+**Critérios de ENTRADA (Fase 6)**
+- Fase 5 concluída funcionalmente (✅);
+- começar por **diagnóstico do IPC** antes de implementar;
+- integrar **somente leitura** primeiro;
+- **não** mexer em `~/.config/hypr` nem substituir configurações Hyprland.
 
 ### Fase 7 — Controles reais
 
@@ -300,12 +306,13 @@ Estas regras valem para **todas as fases**, salvo autorização explícita em co
 
 ## 5. Ordem imediata recomendada
 
-Fases 0–3 concluídas. A partir do estado atual:
+Fases 0–5 concluídas. A partir do estado atual:
 
-1. **iniciar a Fase 4 pelo DIAGNÓSTICO** — como ler apps `.desktop` com segurança;
-2. propor um plano pequeno do Launcher funcional (busca + lista + abrir app);
-3. implementar em passos pequenos, preservando visual/comportamento aprovados;
-4. só depois (Fase 5) iniciar dados reais somente leitura.
+1. **iniciar a Fase 6 pelo DIAGNÓSTICO** — verificar API `Quickshell.Hyprland`
+   (socket IPC, eventos de workspace, lista de workspaces/janelas);
+2. propor plano pequeno: dots de workspace no EdgeLeft e aba Workspaces no EdgeTop;
+3. implementar somente leitura primeiro (workspace ativo, lista de workspaces);
+4. sem alterar `~/.config/hypr` nem configs Hyprland reais.
 
 ## 6. Commits sugeridos por tipo
 
@@ -322,9 +329,12 @@ Fases 0–3 concluídas. A partir do estado atual:
 
 - não mexer no EdgeRight (aprovado/congelado);
 - não reativar o `ScreenFrame` (DEPRECATED);
-- não integrar dados reais além do necessário para listar/abrir apps na Fase 4;
+- não regredir dados reais da Fase 5 para fake;
+- não implementar controles reais (MPRIS play/pause, volume, brilho) ainda;
+- não alterar `~/.config/hypr` nem configs Hyprland reais;
 - não criar autostart nem fazer deploy por enquanto;
 - não substituir a Waybar;
-- não mexer no sistema real (HyDE/Hyprland/SDDM/boot/systemd/login/bateria/PAM);
+- não mexer no sistema real (HyDE/SDDM/boot/systemd/login/bateria/PAM);
+- não usar `Process`/comandos externos sem autorização explícita;
 - não fazer push sem autorização;
 - não commitar bug como feature aprovada.
