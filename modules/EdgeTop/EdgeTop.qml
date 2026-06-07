@@ -21,52 +21,41 @@ PanelWindow {
         { label: "3", active: false, focused: false, windows: 0, monitorName: root.screen && root.screen.name ? root.screen.name : "\u2014" }
     ]
     readonly property var visibleWorkspaceList: root.workspaceList.length > 0 ? root.workspaceList : root.fallbackWorkspaceList
+    readonly property int occupiedWorkspaceCount: {
+        let count = 0;
+        for (let i = 0; i < root.workspaceList.length; i++) {
+            if (Hyprland.workspaceHasWindows(root.workspaceList[i]))
+                count++;
+        }
 
-    function monitorResolutionText(monitor) {
-        if (!monitor)
-            return "\u2014";
-
-        const width = Number(monitor.width);
-        const height = Number(monitor.height);
-        if (Number.isNaN(width) || Number.isNaN(height) || width <= 0 || height <= 0)
-            return "\u2014";
-
-        return Math.trunc(width) + "\u00d7" + Math.trunc(height);
+        return count;
     }
+    readonly property int urgentWorkspaceCount: {
+        let count = 0;
+        for (let i = 0; i < root.workspaceList.length; i++) {
+            if (Hyprland.isWorkspaceUrgent(root.workspaceList[i]))
+                count++;
+        }
 
-    function monitorScaleText(monitor) {
-        if (!monitor)
-            return "\u2014";
-
-        const scale = Number(monitor.scale);
-        if (Number.isNaN(scale) || scale <= 0)
-            return "\u2014";
-
-        return scale.toFixed(2) + "x";
+        return count;
     }
-
-    function monitorWorkspaceText(monitor) {
-        if (monitor && monitor.activeWorkspace)
-            return "Workspace " + Hyprland.workspaceLabel(monitor.activeWorkspace);
-
-        return "Workspace \u2014";
+    readonly property string mediaSubtitle: {
+        if (!Media.available)
+            return "Abra um player para preencher este espaço.";
+        if (Media.artist && Media.album)
+            return Media.artist + " \u2014 " + Media.album;
+        if (Media.artist)
+            return Media.artist;
+        if (Media.album)
+            return Media.album;
+        return "Fonte de m\u00eddia indispon\u00edvel";
     }
 
     function workspaceStateText(workspace, realWorkspace) {
         if (!realWorkspace)
             return workspace && workspace.focused ? "focused" : workspace && workspace.active ? "active" : "idle";
 
-        const states = [];
-        if (Hyprland.isWorkspaceFocused(workspace))
-            states.push("focused");
-        else if (Hyprland.isWorkspaceActive(workspace))
-            states.push("active");
-
-        if (Hyprland.isWorkspaceUrgent(workspace))
-            states.push("urgent");
-
-        states.push(Hyprland.workspaceHasWindows(workspace) ? "ocupado" : "vazio");
-        return states.join(" \u00b7 ");
+        return Hyprland.workspaceStatusLabel(workspace);
     }
 
     anchors { top: true; left: true; right: true }
@@ -188,9 +177,21 @@ PanelWindow {
                 Column {
                     anchors.verticalCenter: parent.verticalCenter
                     spacing: 10
-                    Text { text: Media.available ? Media.title : "Nada tocando"; font.pixelSize: 22; color: Theme.text }
-                    Text { text: Media.album; font.pixelSize: 14; color: Theme.textDim }
-                    Text { text: Media.artist; font.pixelSize: 14; color: Theme.textDim }
+                    MarqueeText {
+                        text: Media.available ? Media.title : "Nada tocando"
+                        maxWidth: 380
+                        pixelSize: 22
+                        bold: true
+                        color: Theme.text
+                    }
+                    MarqueeText {
+                        text: root.mediaSubtitle
+                        maxWidth: 360
+                        pixelSize: 14
+                        color: Theme.textDim
+                        pauseDuration: 1100
+                        endPauseDuration: 800
+                    }
                     Row {
                         spacing: Theme.pad + 6
                         topPadding: 6
@@ -246,7 +247,7 @@ PanelWindow {
 
                         Row {
                             id: summaryRow
-                            property int windowCardWidth: Math.round((width - Theme.gap) * 0.42)
+                            property int windowCardWidth: Math.round((width - Theme.gap) * 0.5)
                             width: parent.width
                             spacing: Theme.gap
 
@@ -265,17 +266,19 @@ PanelWindow {
                                     spacing: 6
 
                                     Text {
-                                        text: "Janela ativa"
+                                        text: "Agora"
                                         font.pixelSize: 12
                                         color: Theme.textDim
                                     }
 
-                                    Text {
+                                    MarqueeText {
                                         text: Hyprland.activeWindowTitle
-                                        font.pixelSize: 17
                                         color: Theme.text
-                                        elide: Text.ElideRight
-                                        width: parent.width
+                                        pixelSize: 17
+                                        bold: true
+                                        maxWidth: parent.width
+                                        pauseDuration: 1000
+                                        endPauseDuration: 760
                                     }
 
                                     Text {
@@ -287,15 +290,7 @@ PanelWindow {
                                     }
 
                                     Text {
-                                        text: "Monitor focado: " + Hyprland.focusedMonitorName
-                                        font.pixelSize: 12
-                                        color: Theme.textDim
-                                        elide: Text.ElideRight
-                                        width: parent.width
-                                    }
-
-                                    Text {
-                                        text: "Workspace ativo: " + Hyprland.activeWorkspaceLabel
+                                        text: "Workspace " + Hyprland.activeWorkspaceLabel
                                         font.pixelSize: 12
                                         color: Theme.textDim
                                         elide: Text.ElideRight
@@ -319,41 +314,70 @@ PanelWindow {
                                     spacing: 6
 
                                     Text {
-                                        text: "Monitores"
+                                        text: "Vis\u00e3o geral"
                                         font.pixelSize: 12
                                         color: Theme.textDim
-                                    }
-
-                                    Repeater {
-                                        model: root.monitorList
-                                        delegate: Column {
-                                            required property var modelData
-                                            width: parent.width
-                                            spacing: 1
-
-                                            Text {
-                                                text: (modelData && modelData.name ? modelData.name : "\u2014") + " \u00b7 " + root.monitorResolutionText(modelData) + " \u00b7 " + root.monitorScaleText(modelData)
-                                                font.pixelSize: 12
-                                                color: modelData && modelData.focused ? Theme.text : Theme.textDim
-                                                elide: Text.ElideRight
-                                                width: parent.width
-                                            }
-
-                                            Text {
-                                                text: root.monitorWorkspaceText(modelData)
-                                                font.pixelSize: 11
-                                                color: Theme.textDim
-                                                elide: Text.ElideRight
-                                                width: parent.width
-                                            }
-                                        }
                                     }
 
                                     Text {
-                                        visible: root.monitorList.length === 0
-                                        text: "Monitor atual: " + Hyprland.monitorNameForScreen(root.screen)
-                                        font.pixelSize: 12
-                                        color: Theme.textDim
+                                        text: root.workspaceList.length > 0
+                                            ? root.occupiedWorkspaceCount + " workspaces ocupados"
+                                            : "Sem dados de workspace"
+                                        font.pixelSize: 17
+                                        color: Theme.text
+                                        font.bold: true
+                                        elide: Text.ElideRight
+                                        width: parent.width
+                                    }
+
+                                    Row {
+                                        spacing: 8
+
+                                        Rectangle {
+                                            width: totalBadgeText.implicitWidth + 14
+                                            height: 24
+                                            radius: 12
+                                            color: Theme.accentSoft
+
+                                            Text {
+                                                id: totalBadgeText
+                                                anchors.centerIn: parent
+                                                text: root.visibleWorkspaceList.length + " total"
+                                                font.pixelSize: 11
+                                                color: Theme.accentActive
+                                            }
+                                        }
+
+                                        Rectangle {
+                                            width: activeBadgeText.implicitWidth + 14
+                                            height: 24
+                                            radius: 12
+                                            color: Theme.cardHover
+
+                                            Text {
+                                                id: activeBadgeText
+                                                anchors.centerIn: parent
+                                                text: Hyprland.activeWorkspaceLabel === "\u2014" ? "sem foco" : "foco " + Hyprland.activeWorkspaceLabel
+                                                font.pixelSize: 11
+                                                color: Theme.textDim
+                                            }
+                                        }
+
+                                        Rectangle {
+                                            visible: root.urgentWorkspaceCount > 0
+                                            width: urgentBadgeText.implicitWidth + 14
+                                            height: 24
+                                            radius: 12
+                                            color: Theme.cardHover
+
+                                            Text {
+                                                id: urgentBadgeText
+                                                anchors.centerIn: parent
+                                                text: root.urgentWorkspaceCount + " urgente"
+                                                font.pixelSize: 11
+                                                color: Theme.textDim
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -374,11 +398,11 @@ PanelWindow {
                                     readonly property bool hasWindows: realWorkspace ? Hyprland.workspaceHasWindows(modelData) : (modelData && modelData.windows > 0)
                                     readonly property int windowCount: realWorkspace ? Hyprland.workspaceWindowCount(modelData) : (modelData && modelData.windows ? modelData.windows : 0)
                                     readonly property string workspaceLabel: realWorkspace ? Hyprland.workspaceLabel(modelData) : (modelData && modelData.label ? modelData.label : "\u2014")
-                                    readonly property string monitorName: realWorkspace
-                                        ? (modelData && modelData.monitor && modelData.monitor.name ? modelData.monitor.name : "\u2014")
-                                        : (modelData && modelData.monitorName ? modelData.monitorName : "\u2014")
-                                    width: 156
-                                    height: 82
+                                    readonly property string workspaceSummary: realWorkspace
+                                        ? Hyprland.workspaceWindowSummary(modelData)
+                                        : (windowCount > 0 ? windowCount + " janelas abertas" : "Vazio")
+                                    width: 168
+                                    height: 100
                                     radius: Theme.radiusSm
                                     antialiasing: true
                                     color: focusedWorkspace
@@ -396,36 +420,59 @@ PanelWindow {
                                     Column {
                                         anchors.fill: parent
                                         anchors.margins: 12
-                                        spacing: 4
+                                        spacing: 6
 
-                                        Text {
-                                            text: "Workspace " + parent.parent.workspaceLabel
-                                            font.pixelSize: 15
-                                            color: parent.parent.focusedWorkspace ? Theme.accentActive : Theme.text
-                                            elide: Text.ElideRight
+                                        Row {
                                             width: parent.width
+                                            spacing: 8
+
+                                            Text {
+                                                width: parent.width - statusBadge.width - parent.spacing
+                                                text: "Workspace " + parent.parent.parent.workspaceLabel
+                                                font.pixelSize: 15
+                                                color: parent.parent.parent.focusedWorkspace ? Theme.accentActive : Theme.text
+                                                font.bold: true
+                                                elide: Text.ElideRight
+                                            }
+
+                                            Rectangle {
+                                                id: statusBadge
+                                                width: statusBadgeText.implicitWidth + 12
+                                                height: 22
+                                                radius: 11
+                                                color: parent.parent.parent.focusedWorkspace
+                                                    ? Theme.accentActive
+                                                    : parent.parent.parent.activeWorkspace
+                                                        ? Theme.accent
+                                                        : Theme.cardHover
+
+                                                Text {
+                                                    id: statusBadgeText
+                                                    anchors.centerIn: parent
+                                                    text: root.workspaceStateText(parent.parent.parent.modelData, parent.parent.parent.realWorkspace)
+                                                    font.pixelSize: 11
+                                                    color: parent.parent.parent.focusedWorkspace || parent.parent.parent.activeWorkspace
+                                                        ? Theme.textOnAccent
+                                                        : Theme.textDim
+                                                }
+                                            }
+                                        }
+
+                                        MarqueeText {
+                                            text: parent.parent.workspaceSummary
+                                            maxWidth: parent.width
+                                            pixelSize: 13
+                                            color: parent.parent.hasWindows ? Theme.text : Theme.textDim
+                                            pauseDuration: 1000
+                                            endPauseDuration: 720
                                         }
 
                                         Text {
-                                            text: "Monitor: " + parent.parent.monitorName
-                                            font.pixelSize: 11
-                                            color: Theme.textDim
-                                            elide: Text.ElideRight
-                                            width: parent.width
-                                        }
-
-                                        Text {
-                                            text: parent.parent.windowCount + (parent.parent.windowCount === 1 ? " janela" : " janelas")
+                                            text: parent.parent.windowCount > 0
+                                                ? parent.parent.windowCount + (parent.parent.windowCount === 1 ? " janela aberta" : " janelas abertas")
+                                                : "Vazio"
                                             font.pixelSize: 11
                                             color: parent.parent.hasWindows ? Theme.textDim : Theme.textFaint
-                                            elide: Text.ElideRight
-                                            width: parent.width
-                                        }
-
-                                        Text {
-                                            text: root.workspaceStateText(parent.parent.modelData, parent.parent.realWorkspace)
-                                            font.pixelSize: 11
-                                            color: parent.parent.urgentWorkspace ? Theme.accentActive : Theme.textDim
                                             elide: Text.ElideRight
                                             width: parent.width
                                         }
