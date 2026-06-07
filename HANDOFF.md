@@ -21,6 +21,8 @@
   foram substituídos por fontes reais via serviços nativos do Quickshell.
 - A shell agora também reage ao estado real do Hyprland com leitura nativa do
   módulo `Quickshell.Hyprland`, sem controle mutável.
+- Refinamento visual adicional aplicado na Fase 6: títulos longos de mídia com
+  marquee suave, Workspaces da `EdgeTop` mais resumidos e `EdgeLeft` menos técnica.
 
 **3. Resumo das Fases 3, 4, 5 e 6**
 
@@ -60,11 +62,15 @@
 - *Fase 6 — Integração Hyprland read-only (implementada em 2026-06-07):*
   - `services/Hyprland.qml` consolidado como adapter somente leitura do singleton
     nativo `Quickshell.Hyprland`.
-  - `EdgeLeft`: dots de workspace reais por tela, monitor real por `screen`,
-    estados `focused`/`active`/ocupado/vazio/urgente, tooltip detalhado e
-    indicação discreta da janela ativa real.
-  - `EdgeTop` aba Workspaces: lista real de workspaces, resumo da janela ativa
-    real e resumo de monitores reais.
+  - `EdgeLeft`: dots de workspace reais por tela, estados `focused`/`active`/
+    ocupado/vazio/urgente, tooltip resumido por workspace e indicação discreta
+    da janela ativa real.
+  - `EdgeTop` aba Workspaces: lista real de workspaces com cards resumidos
+    (`workspace + badge + resumo do que está aberto`), sem poluição técnica.
+  - `EdgeTop` aba Media: títulos/subtítulos longos agora usam marquee suave
+    com largura fixa e clip correto, sem quebrar layout.
+  - `components/MarqueeText.qml`: componente reutilizável para overflow
+    horizontal elegante em textos longos.
   - Sem controle mutável do compositor; apenas leitura e derivação para UI.
 - `IconButton.qml` — três correções acumuladas:
   - **Flicker fix:** `hlClear = Qt.rgba(accentSoft, 0)` — nunca animar `color` para
@@ -86,6 +92,7 @@ components/
   Divider.qml                  # NOVO (Fase 3) — separador fino reutilizável
   Card.qml  IconButton.qml  Pill.qml  TabButton.qml
   SliderPill.qml  RingMeter.qml  CalendarCard.qml  SectionHeader.qml
+  MarqueeText.qml              # NOVO (Fase 6) — overflow horizontal suave
   ScreenFrame.qml              # DEPRECATED/legado — inativo, não importado
 services/                      # NOVO (Fase 5) — singletons read-only
   qmldir                       # registra Clock, Battery, Media, Network, System, Hyprland
@@ -127,6 +134,9 @@ ROADMAP.md  HANDOFF.md  README.md  docs/  assets/references/
 - **Dados reais (Fase 5):** hora/data, calendário, bateria, rede/SSID, perfil de
   energia, mídia (MPRIS), OS/WM/uptime — todos integrados em `services/` (read-only).
   **Não regredir para valores fake.**
+- **Refino visual da Fase 6:** marquee discreto para textos longos de mídia e
+  cards de workspace mais limpos/resumidos. **Não regredir para layout técnico
+  ou texto explodindo o card.**
 - **Tooltip grafite + clip:false:** aprovados. `hlClear` flicker fix aprovado.
   **Não reverter.**
 
@@ -150,6 +160,8 @@ ROADMAP.md  HANDOFF.md  README.md  docs/  assets/references/
 - **Integrados (read-only):** hora/data, calendário, bateria, rede/SSID, perfil de
   energia, mídia/MPRIS (título/artista/álbum/progresso), OS/WM/uptime, apps locais,
   workspaces reais, monitor real por tela, janela ativa real e classe ativa real.
+- **Refinos visuais integrados:** marquee para títulos longos de mídia, resumo
+  compacto do conteúdo dos workspaces e tooltips mais curtos na `EdgeLeft`.
 - **Pendente sem autorização:** áudio/volume (controle), brilho (controle), MPRIS
   play/pause/seek (controle), CPU/GPU/mem/temp (`FileView /proc` — requer política),
   SystemTray real (API disponível;
@@ -818,12 +830,13 @@ Projeto isolado em `~/Projetos/ui-shell-prototype/`, feito em **Quickshell/QML**
 rodando por cima do HyDE/Waybar via `qs -p` **sem alterar nada do sistema**.
 
 **Estado atual:**
-- `EdgeLeft` (sidebar): barra vertical P&B/grafite com relógio, Wi-Fi, perfil, workspaces reais por tela, monitor real e tooltip discreto da janela ativa.
-- `EdgeTop` (drawer topo): abas Dashboard/Media/Performance/Workspaces — Media real; aba Workspaces agora usa dados reais do Hyprland.
+- `EdgeLeft` (sidebar): barra vertical P&B/grafite com relógio, Wi-Fi, perfil, workspaces reais por tela e tooltips mais curtos/resumidos.
+- `EdgeTop` (drawer topo): abas Dashboard/Media/Performance/Workspaces — Media real com marquee para títulos longos; aba Workspaces com cards resumidos do Hyprland.
 - `EdgeRight` (sliders): **aprovado e congelado** — não mexer.
 - `Launcher` (rodapé): abre por clique, busca apps reais, executa via `DesktopEntry.execute()`.
 - `Dashboard` (aba): hora/data/calendário/bateria/OS/WM/uptime reais.
 - `services/`: Clock, Battery, Media, Network, System e Hyprland — todos `pragma Singleton`, todos read-only.
+- `components/MarqueeText.qml`: novo componente reutilizável para overflow horizontal suave.
 - Tooltips: `clip: false` no `shellShape`, chip grafite, elide para labels longos, sem flicker.
 - **`ScreenFrame.qml`** existe mas está INATIVO (DEPRECATED) — não reativar.
 - `qmllint` limpo em `services/Hyprland.qml`, `modules/EdgeLeft/EdgeLeft.qml` e `modules/EdgeTop/EdgeTop.qml`.

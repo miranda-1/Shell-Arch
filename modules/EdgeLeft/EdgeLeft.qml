@@ -113,7 +113,8 @@ PanelWindow {
                         model: root.visibleWorkspaceDots
                         delegate: Item {
                             required property var modelData
-                            readonly property bool realWorkspace: modelData && modelData.monitor !== undefined
+                            readonly property bool realWorkspace: Hyprland.isRealWorkspace(modelData)
+                            readonly property bool activatableWorkspace: realWorkspace && Hyprland.canActivateWorkspace(modelData)
                             readonly property bool activeWorkspace: realWorkspace ? Hyprland.isWorkspaceActive(modelData) : !!modelData.active
                             readonly property bool focusedWorkspace: realWorkspace ? Hyprland.isWorkspaceFocused(modelData) : !!modelData.focused
                             readonly property bool urgentWorkspace: realWorkspace ? Hyprland.isWorkspaceUrgent(modelData) : false
@@ -138,7 +139,15 @@ PanelWindow {
                                             : Theme.textFaint
                                 border.width: parent.urgentWorkspace ? 1 : 0
                                 border.color: Theme.accentActive
-                                scale: parent.focusedWorkspace ? 1.0 : parent.activeWorkspace ? 0.97 : parent.workspaceHasWindows ? 0.94 : 0.9
+                                scale: workspaceTap.pressed && parent.activatableWorkspace
+                                    ? 0.82
+                                    : parent.focusedWorkspace
+                                        ? 1.0
+                                        : parent.activeWorkspace
+                                            ? 0.97
+                                            : parent.workspaceHasWindows
+                                                ? 0.94
+                                                : 0.9
 
                                 Behavior on width { NumberAnimation { duration: Theme.tFast; easing.type: Easing.OutCubic } }
                                 Behavior on color { ColorAnimation { duration: Theme.tFast } }
@@ -146,7 +155,17 @@ PanelWindow {
                                 Behavior on scale { NumberAnimation { duration: Theme.tFast; easing.type: Easing.OutCubic } }
                             }
 
-                            HoverHandler { id: workspaceHover }
+                            HoverHandler {
+                                id: workspaceHover
+                                cursorShape: parent.activatableWorkspace ? Qt.PointingHandCursor : Qt.ArrowCursor
+                            }
+
+                            TapHandler {
+                                id: workspaceTap
+                                acceptedButtons: Qt.LeftButton
+                                enabled: parent.activatableWorkspace
+                                onTapped: Hyprland.activateWorkspace(parent.modelData)
+                            }
 
                             Rectangle {
                                 anchors.verticalCenter: parent.verticalCenter

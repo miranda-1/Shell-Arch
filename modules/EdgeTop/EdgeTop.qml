@@ -391,7 +391,8 @@ PanelWindow {
                                 model: root.visibleWorkspaceList
                                 delegate: Rectangle {
                                     required property var modelData
-                                    readonly property bool realWorkspace: modelData && modelData.monitor !== undefined
+                                    readonly property bool realWorkspace: Hyprland.isRealWorkspace(modelData)
+                                    readonly property bool activatableWorkspace: realWorkspace && Hyprland.canActivateWorkspace(modelData)
                                     readonly property bool focusedWorkspace: realWorkspace ? Hyprland.isWorkspaceFocused(modelData) : !!modelData.focused
                                     readonly property bool activeWorkspace: realWorkspace ? Hyprland.isWorkspaceActive(modelData) : !!modelData.active
                                     readonly property bool urgentWorkspace: realWorkspace ? Hyprland.isWorkspaceUrgent(modelData) : false
@@ -409,13 +410,36 @@ PanelWindow {
                                         ? Theme.accentSoft
                                         : activeWorkspace
                                             ? Qt.darker(Theme.accentSoft, 1.03)
-                                            : Theme.card
+                                            : workspaceTap.pressed && activatableWorkspace
+                                                ? Qt.darker(Theme.cardHover, 1.02)
+                                                : workspaceHover.hovered && activatableWorkspace
+                                                    ? Theme.cardHover
+                                                    : Theme.card
                                     border.width: urgentWorkspace || focusedWorkspace ? 2 : 1
                                     border.color: focusedWorkspace
                                         ? Theme.accent
                                         : urgentWorkspace
                                             ? Theme.accentActive
-                                            : Theme.stroke
+                                            : workspaceHover.hovered && activatableWorkspace
+                                                ? Theme.strokeStrong
+                                                : Theme.stroke
+                                    scale: workspaceTap.pressed && activatableWorkspace ? 0.985 : 1.0
+
+                                    Behavior on color { ColorAnimation { duration: Theme.tFast } }
+                                    Behavior on border.color { ColorAnimation { duration: Theme.tFast } }
+                                    Behavior on scale { NumberAnimation { duration: Theme.tFast; easing.type: Easing.OutCubic } }
+
+                                    HoverHandler {
+                                        id: workspaceHover
+                                        cursorShape: parent.activatableWorkspace ? Qt.PointingHandCursor : Qt.ArrowCursor
+                                    }
+
+                                    TapHandler {
+                                        id: workspaceTap
+                                        acceptedButtons: Qt.LeftButton
+                                        enabled: parent.activatableWorkspace
+                                        onTapped: Hyprland.activateWorkspace(parent.modelData)
+                                    }
 
                                     Column {
                                         anchors.fill: parent

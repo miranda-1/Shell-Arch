@@ -62,6 +62,9 @@ Estas regras valem para **todas as fases**, salvo autorização explícita em co
 - **Fase 6 implementada em modo read-only**: `services/Hyprland.qml`, workspaces
   reais por tela no EdgeLeft, janela ativa real, monitor real por tela e aba
   Workspaces da EdgeTop com dados reais de workspaces/monitores.
+- **Refino visual da Fase 6 aplicado**: `MarqueeText.qml` para títulos longos
+  de mídia, cards de workspace mais compactos e menos informação técnica na
+  `EdgeLeft` e na aba Workspaces da `EdgeTop`.
 - **estado atual da Fase 6**: pronta para validação visual do usuário; nenhuma
   ação mutável liberada.
 
@@ -223,8 +226,9 @@ Estas regras valem para **todas as fases**, salvo autorização explícita em co
 
 **Resultado (2026-06-07): IMPLEMENTADA EM MODO READ-ONLY**
 - `services/Hyprland.qml` consolidado sobre `Quickshell.Hyprland`.
-- `EdgeLeft`: workspaces reais por tela, estados visuais, monitor real e resumo da janela ativa.
-- `EdgeTop`: aba Workspaces com workspaces reais, janela ativa real e monitores reais.
+- `components/MarqueeText.qml` criado para overflow horizontal suave de títulos longos.
+- `EdgeLeft`: workspaces reais por tela, estados visuais, resumo de workspace na tela e resumo da janela ativa.
+- `EdgeTop`: aba Workspaces com workspaces reais em cards resumidos; aba Media com títulos/subtítulos longos protegidos por marquee.
 - sem alteração em `~/.config/hypr` e sem controles mutáveis do compositor.
 
 ### Fase 7 — Controles reais
@@ -314,8 +318,8 @@ Estas regras valem para **todas as fases**, salvo autorização explícita em co
 
 Fases 0–6 implementadas no código. A partir do estado atual:
 
-1. validar visualmente a Fase 6 com troca de workspace, foco e multi-monitor;
-2. corrigir qualquer ajuste fino visual ou de fallback encontrado nessa validação;
+1. validar visualmente a Fase 6 com troca de workspace, foco, multi-monitor e textos longos de mídia;
+2. corrigir qualquer ajuste fino visual, de marquee ou de fallback encontrado nessa validação;
 3. só depois disso discutir a Fase 7, com ações reais atrás de autorização explícita;
 4. seguir sem alterar `~/.config/hypr` nem configs Hyprland reais.
 
