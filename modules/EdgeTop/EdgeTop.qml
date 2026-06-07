@@ -1,5 +1,6 @@
 import "../../config"
 import "../../components"
+import "../../services"
 import "../Dashboard"
 import Quickshell
 import Quickshell.Wayland
@@ -132,26 +133,26 @@ PanelWindow {
                 Column {
                     anchors.verticalCenter: parent.verticalCenter
                     spacing: 10
-                    Text { text: "Bad Apple!! feat. nomico"; font.pixelSize: 22; color: Theme.text }
-                    Text { text: "THE GAME"; font.pixelSize: 14; color: Theme.textDim }
-                    Text { text: "Alstroemeria Records"; font.pixelSize: 14; color: Theme.textDim }
+                    Text { text: Media.available ? Media.title : "Nada tocando"; font.pixelSize: 22; color: Theme.text }
+                    Text { text: Media.album; font.pixelSize: 14; color: Theme.textDim }
+                    Text { text: Media.artist; font.pixelSize: 14; color: Theme.textDim }
                     Row {
                         spacing: Theme.pad + 6
                         topPadding: 6
                         Text { text: ""; font.family: Theme.iconFont; font.pixelSize: 22; color: Theme.textDim }  // prev
-                        Text { text: ""; font.family: Theme.iconFont; font.pixelSize: 28; color: Theme.accent }   // play
+                        Text { text: Media.isPlaying ? "" : ""; font.family: Theme.iconFont; font.pixelSize: 28; color: Theme.accent }   // estado play/pause (read-only)
                         Text { text: ""; font.family: Theme.iconFont; font.pixelSize: 22; color: Theme.textDim }  // next
                     }
                     Row {
                         spacing: Theme.gap
                         topPadding: 6
-                        Text { anchors.verticalCenter: parent.verticalCenter; text: "0:10"; font.pixelSize: 12; color: Theme.textDim }
+                        Text { anchors.verticalCenter: parent.verticalCenter; text: Media.positionText; font.pixelSize: 12; color: Theme.textDim }
                         Rectangle {
                             anchors.verticalCenter: parent.verticalCenter
                             width: 280; height: 5; radius: 3; color: Theme.accentTrack
-                            Rectangle { anchors { left: parent.left; top: parent.top; bottom: parent.bottom } width: parent.width * 0.03; radius: 3; color: Theme.accent }
+                            Rectangle { anchors { left: parent.left; top: parent.top; bottom: parent.bottom } width: parent.width * Media.progress; radius: 3; color: Theme.accent }
                         }
-                        Text { anchors.verticalCenter: parent.verticalCenter; text: "5:17"; font.pixelSize: 12; color: Theme.textDim }
+                        Text { anchors.verticalCenter: parent.verticalCenter; text: Media.lengthText; font.pixelSize: 12; color: Theme.textDim }
                     }
                 }
             }
