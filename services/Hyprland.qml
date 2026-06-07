@@ -31,6 +31,11 @@ Singleton {
     readonly property var focusedMonitor: root._hypr.focusedMonitor
     readonly property var focusedWorkspace: root._hypr.focusedWorkspace
     readonly property var activeToplevel: root._hypr.activeToplevel
+    readonly property var workspaceList: {
+        const list = root.workspaces ? root.workspaces.values.slice() : [];
+        list.sort((a, b) => root.workspaceSortKey(a) - root.workspaceSortKey(b));
+        return list;
+    }
 
     readonly property string activeWindowTitle: {
         if (!root.activeToplevel || !root.activeToplevel.title)
@@ -87,8 +92,14 @@ Singleton {
         return workspace.id;
     }
 
+    function monitorForScreen(screen) {
+        if (!root.available || !screen)
+            return null;
+        return root._hypr.monitorFor(screen);
+    }
+
     function workspacesForMonitorName(name) {
-        const list = root.workspaces ? root.workspaces.values : [];
+        const list = root.workspaceList;
         const filtered = [];
 
         for (let i = 0; i < list.length; i++) {
@@ -97,7 +108,18 @@ Singleton {
                 filtered.push(workspace);
         }
 
-        filtered.sort((a, b) => root.workspaceSortKey(a) - root.workspaceSortKey(b));
         return filtered;
+    }
+
+    function workspacesForScreen(screen) {
+        const monitor = root.monitorForScreen(screen);
+
+        if (monitor && monitor.name) {
+            const filtered = root.workspacesForMonitorName(monitor.name);
+            if (filtered.length > 0)
+                return filtered;
+        }
+
+        return root.workspaceList;
     }
 }
