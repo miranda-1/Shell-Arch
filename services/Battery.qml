@@ -52,4 +52,15 @@ Singleton {
             return root.percent + "% (carregando)";
         return root.percent + "%";
     }
+
+    // perfil de energia atual (LEITURA via power-profiles-daemon do UPower).
+    // Apenas reporta o perfil ativo — NÃO altera o perfil de energia.
+    readonly property string profileText: {
+        switch (PowerProfiles.profile) {
+        case PowerProfile.PowerSaver:   return "Economia";
+        case PowerProfile.Balanced:     return "Equilibrado";
+        case PowerProfile.Performance:  return "Performance";
+        default:                        return "Equilibrado";
+        }
+    }
 }
