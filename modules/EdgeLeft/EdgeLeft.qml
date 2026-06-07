@@ -16,6 +16,7 @@ PanelWindow {
     readonly property string screenMonitorName: Hyprland.monitorNameForScreen(root.screen)
     readonly property var workspaceDots: Hyprland.workspacesForScreen(root.screen)
     readonly property bool hasRealWorkspaces: root.workspaceDots.length > 0
+    readonly property var screenWorkspace: Hyprland.activeWorkspaceForScreen(root.screen)
     readonly property var fallbackWorkspaceDots: [
         { label: "1", active: true, focused: true },
         { label: "2", active: false, focused: false },
@@ -26,6 +27,9 @@ PanelWindow {
     readonly property string activeWindowTooltip: root.hasActiveWindow
         ? "App: " + Hyprland.activeWindowClass + "\nJanela: " + Hyprland.activeWindowTitle
         : "Sem janela ativa"
+    readonly property string screenWorkspaceTooltip: root.screenWorkspace
+        ? "Workspace " + Hyprland.workspaceLabel(root.screenWorkspace) + "\n" + Hyprland.workspaceWindowSummary(root.screenWorkspace)
+        : "Desktop"
 
     function workspaceTooltipText(workspace, realWorkspace, activeWorkspace, focusedWorkspace) {
         const label = realWorkspace ? Hyprland.workspaceLabel(workspace) : (workspace && workspace.label ? workspace.label : "\u2014");
@@ -36,21 +40,8 @@ PanelWindow {
             return lines.join("\n");
         }
 
-        const windows = Hyprland.workspaceWindowCount(workspace);
-        const states = [];
-        if (focusedWorkspace)
-            states.push("focused");
-        else if (activeWorkspace)
-            states.push("active");
-
-        if (Hyprland.isWorkspaceUrgent(workspace))
-            states.push("urgent");
-
-        states.push(windows > 0 ? "ocupado" : "vazio");
-
-        lines.push("Monitor: " + (workspace && workspace.monitor && workspace.monitor.name ? workspace.monitor.name : root.screenMonitorName));
-        lines.push("Janelas: " + windows);
-        lines.push("Estado: " + states.join(", "));
+        lines.push("Estado: " + Hyprland.workspaceStatusLabel(workspace));
+        lines.push(Hyprland.workspaceWindowSummary(workspace));
         return lines.join("\n");
     }
 
@@ -126,7 +117,6 @@ PanelWindow {
                             readonly property bool activeWorkspace: realWorkspace ? Hyprland.isWorkspaceActive(modelData) : !!modelData.active
                             readonly property bool focusedWorkspace: realWorkspace ? Hyprland.isWorkspaceFocused(modelData) : !!modelData.focused
                             readonly property bool urgentWorkspace: realWorkspace ? Hyprland.isWorkspaceUrgent(modelData) : false
-                            readonly property int workspaceWindows: realWorkspace ? Hyprland.workspaceWindowCount(modelData) : 0
                             readonly property bool workspaceHasWindows: realWorkspace ? Hyprland.workspaceHasWindows(modelData) : false
                             readonly property string workspaceText: root.workspaceTooltipText(modelData, realWorkspace, activeWorkspace, focusedWorkspace)
                             anchors.horizontalCenter: parent.horizontalCenter
@@ -191,7 +181,7 @@ PanelWindow {
             Column {
                 anchors.centerIn: parent
                 spacing: Theme.gap
-                IconButton { glyph: ""; glyphColor: Theme.textDim; label: "Monitor: " + root.screenMonitorName }
+                IconButton { glyph: ""; glyphColor: Theme.textDim; label: root.screenWorkspaceTooltip }
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
                     text: "Desktop"

@@ -163,6 +163,55 @@ Singleton {
         return root.workspaceWindowCount(workspace) > 0;
     }
 
+    function workspaceStatusLabel(workspace) {
+        if (!workspace)
+            return root._fallback;
+
+        if (root.isWorkspaceFocused(workspace))
+            return "Focado";
+        if (root.isWorkspaceActive(workspace))
+            return "Ativo";
+        if (root.isWorkspaceUrgent(workspace))
+            return "Urgente";
+
+        return root.workspaceHasWindows(workspace) ? "Ocupado" : "Vazio";
+    }
+
+    function workspaceWindowSummary(workspace) {
+        if (!workspace)
+            return "Vazio";
+
+        const count = root.workspaceWindowCount(workspace);
+        if (count <= 0)
+            return "Vazio";
+
+        const toplevels = root._modelValues(workspace.toplevels);
+        const labels = [];
+        const seen = {};
+
+        for (let i = 0; i < toplevels.length; i++) {
+            const label = root._toplevelAppLabel(toplevels[i]);
+            const key = label.toLowerCase();
+
+            if (label !== root._fallback && !seen[key]) {
+                seen[key] = true;
+                labels.push(label);
+            }
+        }
+
+        if (labels.length === 0)
+            return count === 1 ? "1 janela aberta" : count + " janelas abertas";
+
+        if (count === 1)
+            return labels[0];
+        if (labels.length === 1)
+            return labels[0] + " +" + Math.max(0, count - 1);
+        if (count === 2 && labels.length >= 2)
+            return labels[0] + ", " + labels[1];
+
+        return labels[0] + ", " + labels[1] + " +" + Math.max(0, count - 2);
+    }
+
     function monitorForScreen(screen) {
         if (!root.available || !screen)
             return null;
@@ -252,6 +301,26 @@ Singleton {
 
     function _monitorName(monitor) {
         return root._safeString(monitor && monitor.name ? monitor.name : "", root._fallback);
+    }
+
+    function _toplevelAppLabel(toplevel) {
+        if (!toplevel)
+            return root._fallback;
+
+        const object = toplevel.lastIpcObject;
+        const className = root._safeString(object ? object["class"] : "", "");
+        if (className)
+            return className;
+
+        const initialClass = root._safeString(object ? object["initialClass"] : "", "");
+        if (initialClass)
+            return initialClass;
+
+        const title = root._safeString(toplevel.title, "");
+        if (title)
+            return title;
+
+        return root._fallback;
     }
 
     function _padNumber(value) {
