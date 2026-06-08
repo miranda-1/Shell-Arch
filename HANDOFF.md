@@ -6,25 +6,99 @@
 
 ---
 
-## 0. ESTADO ATUAL AUTORITATIVO (2026-06-07 — Fase 6 implementada em modo read-only)
+## 0. ESTADO ATUAL AUTORITATIVO (2026-06-07 — arquitetura Sidebar + TopSheet implementada)
 
 > **Leia esta seção primeiro.** Ela é a fonte de verdade atual e **supersede** as
-> seções históricas abaixo onde houver conflito. As seções 1–14 são registro
-> histórico (incluindo o tema rosé/ink antigo e o "Launcher bugado" — ambos
-> **superados**: hoje o tema é **P&B/grafite** e o **Launcher está aprovado**).
+> seções históricas abaixo onde houver conflito. As seções 1–14 continuam como
+> registro do caminho anterior, mas a shell ativa mudou de arquitetura nesta data.
 
 **1. Linha oficial de trabalho**
-- Trabalho **direto na `main`**, **sem branches**. Não criar branch, não dar push.
+- Trabalho **direto na `main`**, **sem branches**.
+- **Não commitar**, **não dar push** sem ordem explícita do usuário.
 
-**2. Fase 6 — IMPLEMENTADA NO CÓDIGO / VALIDAÇÃO VISUAL PENDENTE**
-- Todos os dados fake de hora/data, bateria, rede, perfil, mídia e sistema
-  foram substituídos por fontes reais via serviços nativos do Quickshell.
-- A shell agora também reage ao estado real do Hyprland com leitura nativa do
-  módulo `Quickshell.Hyprland`, sem controle mutável.
-- Refinamento visual adicional aplicado na Fase 6: títulos longos de mídia com
-  marquee suave, Workspaces da `EdgeTop` mais resumidos e `EdgeLeft` menos técnica.
+**2. Nova arquitetura ativa**
+- `shell.qml` agora monta **apenas** `EdgeLeft` e `TopSheet` por tela.
+- A **sidebar esquerda** virou o seletor principal de contexto.
+- O **TopSheet** é a nova superfície superior contextual, com barra viva integrada
+  e painel expansível que desce do topo.
+- Fluxo oficial: **clique na sidebar -> abre/troca página no TopSheet**.
+- Clicar no **mesmo ícone** fecha o painel; clicar em outro troca a página sem
+  recriar a shell.
+- Páginas disponíveis no runtime:
+  - `dashboard`
+  - `search`
+  - `calendar`
+  - `controls`
+  - `media`
+  - `workspaces`
+  - `system`
+  - `profile`
 
-**3. Resumo das Fases 3, 4, 5 e 6**
+**3. O que foi migrado**
+- `EdgeTop` antiga **saiu do runtime ativo**. O conteúdo conceitual foi migrado
+  para `modules/TopSheet/TopSheet.qml` e suas páginas.
+- `Launcher` antigo **continua no repositório**, mas saiu da montagem ativa.
+  O conceito e a busca real foram reaproveitados na `SearchPage` via
+  `DesktopAppModel` e `DesktopEntry.execute()`.
+- `EdgeRight` antiga **continua no repositório**, mas saiu da montagem ativa para
+  evitar duplicação com a nova página `Controls`.
+- As integrações reais preservadas na nova shell:
+  - `Clock`
+  - `Battery`
+  - `Network`
+  - `System`
+  - `Hyprland`
+  - `Media`
+  - `MarqueeText`
+
+**4. O que ficou legado / pendente**
+- `modules/EdgeTop/EdgeTop.qml`: legado, não montado pela shell nova.
+- `modules/EdgeRight/EdgeRight.qml`: legado, não montado pela shell nova.
+- `modules/Launcher/Launcher.qml`: legado, não montado pela shell nova.
+- `modules/Dashboard/Dashboard.qml`: legado visual do drawer antigo.
+- Placeholders assumidos explicitamente:
+  - volume visual read-only;
+  - brilho visual read-only;
+  - Bluetooth visual read-only;
+  - CPU/MEM/TMP ainda placeholders em `SystemPage`;
+  - ações de bloqueio/logout/reboot/shutdown continuam **sem ação real**.
+
+**5. Segurança e limites mantidos**
+- Nenhum `Process` novo foi adicionado.
+- Nenhum `hyprctl` foi introduzido no runtime.
+- Nenhuma config real do Hyprland/HyDE/Waybar/SDDM/boot/systemd foi tocada.
+- A única ação mutável preservada do compositor continua sendo
+  `Hyprland.activateWorkspace()` encapsulada no serviço já existente.
+- Ações reais de mídia preservadas e centralizadas em `services/Media.qml`:
+  `playPause()`, `next()`, `previous()`.
+- Não há novos controles reais de Wi-Fi/Bluetooth/brilho/volume.
+
+**6. Testes executados nesta leva**
+- `qmllint` passou nos arquivos novos/alterados da arquitetura nova.
+- `qs -p /home/miranda/Projetos/ui-shell-prototype/shell.qml` foi executado em
+  2026-06-07; a configuração carregou com sucesso (`Configuration Loaded`).
+- O log do Quickshell não mostrou erro imediato de parse/import na nova shell.
+
+**7. Arquivos centrais da nova shell**
+- `shell.qml`
+- `modules/EdgeLeft/EdgeLeft.qml`
+- `modules/TopSheet/TopSheet.qml`
+- `modules/TopSheet/pages/*.qml`
+- `components/ContextButton.qml`
+- `components/ControlSlider.qml`
+- `components/MetricCard.qml`
+- `components/QuickToggle.qml`
+- `components/TopSheetHeader.qml`
+
+**8. Próximos passos recomendados**
+- Validar visualmente multi-monitor, densidade, animação e alinhamento do TopSheet.
+- Decidir se a barra superior compacta precisa ganhar ações/contextos extras.
+- Só depois disso considerar:
+  - controles reais seguros;
+  - tema dinâmico;
+  - métricas reais de performance.
+
+**9. Resumo das Fases 3, 4, 5 e 6**
 
 *Fases 3 e 4:*
 - `Divider.qml` criado e aplicado (EdgeLeft/EdgeTop). Tokens aditivos em `Theme.qml`.
@@ -83,9 +157,9 @@
   execução externa/escrita/alteração de estado → **proibidas sem autorização explícita**.
 - `qmllint` exit 0 em todos os arquivos tocados; working tree limpa.
 
-**4. Arquivos relevantes atuais**
+**10. Arquivos relevantes atuais**
 ```
-shell.qml                      # entrypoint (NÃO alterar) — monta as 4 bordas
+shell.qml                      # entrypoint atual — monta EdgeLeft + TopSheet por tela
 config/Theme.qml               # tokens visuais (P&B/grafite) + tokens da Fase 3
 config/qmldir                  # registra o singleton Theme
 components/
@@ -98,16 +172,18 @@ services/                      # NOVO (Fase 5) — singletons read-only
   qmldir                       # registra Clock, Battery, Media, Network, System, Hyprland
   Clock.qml   Battery.qml   Media.qml   Network.qml   System.qml   Hyprland.qml
 modules/
-  EdgeLeft/EdgeLeft.qml        # sidebar principal (aprovada)
-  EdgeTop/EdgeTop.qml          # drawer do topo + 4 abas (anti-hover-acidental)
-  EdgeRight/EdgeRight.qml      # rail + card de sliders (APROVADO/CONGELADO)
-  Launcher/Launcher.qml        # launcher funcional: busca + navegação + execução
+  EdgeLeft/EdgeLeft.qml        # sidebar seletora da nova arquitetura
+  EdgeTop/EdgeTop.qml          # LEGADO — não montado
+  EdgeRight/EdgeRight.qml      # LEGADO — não montado
+  Launcher/Launcher.qml        # LEGADO — não montado
   Launcher/DesktopAppModel.qml # adapter read-only de DesktopEntries + favoritos
-  Dashboard/Dashboard.qml      # conteúdo da aba Dashboard
+  Dashboard/Dashboard.qml      # LEGADO do drawer antigo
+  TopSheet/TopSheet.qml        # nova superfície superior
+  TopSheet/pages/*.qml         # páginas contextuais do TopSheet
 ROADMAP.md  HANDOFF.md  README.md  docs/  assets/references/
 ```
 
-**5. Regras absolutas de segurança (reforço)**
+**11. Regras absolutas de segurança (reforço)**
 - Trabalhar **somente** dentro de `~/Projetos/ui-shell-prototype/`.
 - **Não** mexer em HyDE, Waybar, Hyprland, SDDM, boot, Secure Boot, systemd,
   autostart, login, bateria ou PAM — nada do sistema real.
@@ -116,21 +192,12 @@ ROADMAP.md  HANDOFF.md  README.md  docs/  assets/references/
 - **Não** reativar `ScreenFrame`. **Não** commitar bug como feature aprovada.
 - Qualquer coisa fora da pasta do protótipo exige **autorização explícita**.
 
-**6. Estado aprovado (NÃO regredir)**
+**12. Estado aprovado (NÃO regredir)**
 - **Visual:** P&B/grafite (tema claro monocromático) — **aprovado**. (O tema
   rosé/ink descrito nas seções 4/6 históricas está **superado**.)
-- **EdgeRight:** aprovado e **congelado** — não mexer.
-- **Launcher:** aprovado e estável — abre por **clique** no puxador, fecha por
-  **clique-fora/Esc**, com hardening `enabled: !root.open` contra clique invisível.
-  **Não** voltar para hover puro. Agora também:
-  - mostra 4 favoritos reais quando a query está vazia;
-  - aceita digitação imediata ao abrir;
-  - busca apps locais reais;
-  - navega por `Up`/`Down`;
-  - executa o item selecionado com `Enter` ou clique;
-  - fecha após executar.
-- **EdgeTop:** mantém **anti-hover-acidental** (delay + faixa de gatilho estreita).
-  **Não** alterar sua lógica de máscara/hover/trigger/delay.
+- **TopSheet:** arquitetura aprovada para validação visual.
+- **EdgeRight/Launcher/EdgeTop antigos:** preservados como legado; não reativar
+  no runtime sem intenção clara.
 - **Dados reais (Fase 5):** hora/data, calendário, bateria, rede/SSID, perfil de
   energia, mídia (MPRIS), OS/WM/uptime — todos integrados em `services/` (read-only).
   **Não regredir para valores fake.**
@@ -140,23 +207,23 @@ ROADMAP.md  HANDOFF.md  README.md  docs/  assets/references/
 - **Tooltip grafite + clip:false:** aprovados. `hlClear` flicker fix aprovado.
   **Não reverter.**
 
-**7. Próxima etapa recomendada — validar a Fase 6 e preparar a Fase 7**
-- Próximo passo imediato: validar visualmente a integração read-only do Hyprland
+**13. Próxima etapa recomendada**
+- Próximo passo imediato: validar visualmente a arquitetura `Sidebar -> TopSheet`
   em todos os monitores.
-- Se aprovado, a próxima fase natural é a **Fase 7 — controles reais**, sempre
-  atrás de autorização explícita para qualquer ação mutável.
+- Se aprovado, a próxima fase natural é a **Fase 7 — controles reais seguros**,
+  sempre atrás de autorização explícita para qualquer ação mutável nova.
 - Continuar sem alterar `~/.config/hypr` nem configs reais.
 
-**8. Instruções para o Codex trabalhar com segurança**
+**14. Instruções para o Codex trabalhar com segurança**
 - Antes de editar: `git status` / `git log --oneline -5` para situar-se na `main`.
 - Mudanças **pequenas e isoladas**; rodar **`qmllint`** nos arquivos tocados.
-- **Não executar `qs -p`** — quem faz o teste visual é o usuário (a shell desenha
-  layers na sessão dele). Entregar comandos para o usuário rodar.
+- `qs -p` pode ser usado **apenas** para validar carregamento local da shell,
+  sem mexer em ações perigosas.
 - **Não commitar sem aprovação** do usuário; **nunca** dar push.
 - Preservar visual/comportamento aprovados (EdgeRight, Launcher, EdgeTop).
 - Em dúvida sobre tocar algo sensível (máscara/hover/sistema), **parar e perguntar**.
 
-**9. Dados reais: integrados vs. ainda proibidos/pendentes**
+**15. Dados reais: integrados vs. ainda proibidos/pendentes**
 - **Integrados (read-only):** hora/data, calendário, bateria, rede/SSID, perfil de
   energia, mídia/MPRIS (título/artista/álbum/progresso), OS/WM/uptime, apps locais,
   workspaces reais, monitor real por tela, janela ativa real e classe ativa real.

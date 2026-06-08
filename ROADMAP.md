@@ -15,10 +15,10 @@ o suficiente para rodar o dia todo sem irritação, e segura o suficiente para
 A direção aprovada é:
 
 - **sidebar esquerda premium** como peça principal da interface;
-- **puxadores/painéis minimalistas** no topo, na direita e na base;
+- **TopSheet contextual** como superfície principal de conteúdo;
 - **sem moldura contínua** em volta da tela (o `ScreenFrame` fica inativo);
 - projeto ainda **isolado do sistema real**;
-- **dados fake/stub** até a base visual e interativa ficar estável e aprovada.
+- dados reais **somente** onde já houver serviço seguro e aprovado.
 
 A evolução é incremental: primeiro a identidade visual e a UX ficam sólidas,
 depois vêm componentização, launcher funcional, dados reais somente leitura,
@@ -37,22 +37,18 @@ Estas regras valem para **todas as fases**, salvo autorização explícita em co
 - **sempre criar commits pequenos** e focados;
 - **nunca dar push sem autorização**.
 
-## 3. Estado atual resumido (atualizado 2026-06-07 — Fase 6 implementada em código)
+## 3. Estado atual resumido (atualizado 2026-06-07 — reestruturação Sidebar + TopSheet implementada)
 
 - trabalho direto na **`main`** (linha oficial; sem branches);
-- `shell.qml` monta **EdgeLeft**, **EdgeTop**, **EdgeRight** e **Launcher** por tela;
+- `shell.qml` monta **EdgeLeft** e **TopSheet** por tela;
 - o projeto roda via **`qs -p`** (entrypoint isolado, não substitui nada do sistema);
 - **`ScreenFrame` está inativo** e marcado **DEPRECATED** (não importado, não remover);
 - **multi-monitor ativo** — uma instância de cada borda em todos os monitores;
 - **visual P&B/grafite aprovado** (tema claro monocromático);
-- **EdgeRight aprovado e congelado** — não mexer;
-- **Launcher aprovado e estável** — abre por clique no puxador, fecha por
-  clique-fora/Esc, com hardening contra clique invisível (`enabled: !root.open`);
-- **Launcher funcional concluído** — usa apps reais via `DesktopEntries`,
-  mostra 4 favoritos com query vazia, busca apps locais, aceita foco imediato no
-  campo de busca, navega por `Up`/`Down`, executa por clique/`Enter` com
-  `DesktopEntry.execute()` e fecha após executar;
-- **EdgeTop** mantém o anti-hover-acidental (delay + faixa de gatilho estreita);
+- **Sidebar -> TopSheet** é agora o fluxo principal aprovado para validação;
+- `modules/EdgeTop`, `modules/EdgeRight` e `modules/Launcher` ficaram como legado
+  no repositório e **não** estão montados no runtime atual;
+- a busca real foi absorvida na `SearchPage` do TopSheet via `DesktopAppModel`;
 - **Fase 3 concluída**: `Divider.qml` criado e aplicado, tokens de
   tipografia/glyph/dimensão no `Theme.qml`, `ScreenFrame` DEPRECATED.
 - **Fase 4 concluída funcionalmente**; ícones reais no Launcher como melhoria futura.
@@ -60,13 +56,18 @@ Estas regras valem para **todas as fases**, salvo autorização explícita em co
   `services/` (Clock, Battery, Media, Network, System); `IconButton` sem flicker;
   tooltips corrigidos (clip + elide). Ainda fake: CPU/GPU e SystemTray.
 - **Fase 6 implementada em modo read-only**: `services/Hyprland.qml`, workspaces
-  reais por tela no EdgeLeft, janela ativa real, monitor real por tela e aba
-  Workspaces da EdgeTop com dados reais de workspaces/monitores.
-- **Refino visual da Fase 6 aplicado**: `MarqueeText.qml` para títulos longos
-  de mídia, cards de workspace mais compactos e menos informação técnica na
-  `EdgeLeft` e na aba Workspaces da `EdgeTop`.
-- **estado atual da Fase 6**: pronta para validação visual do usuário; nenhuma
-  ação mutável liberada.
+  reais por tela no EdgeLeft, janela ativa real, monitor real por tela e
+  `WorkspacesPage` real no TopSheet.
+- **Refatoração arquitetural aplicada em 2026-06-07**:
+  - nova `modules/TopSheet/TopSheet.qml`;
+  - páginas `Dashboard`, `Search`, `Calendar`, `Controls`, `Media`,
+    `Workspaces`, `System`, `Profile`;
+  - `ContextButton`, `TopSheetHeader`, `QuickToggle`, `ControlSlider`,
+    `MetricCard` como nova base visual;
+  - `Controls` com placeholders read-only explícitos para volume/brilho/Bluetooth;
+  - `Media` e `Workspaces` preservando ações reais já aprovadas.
+- **estado atual**: pronta para validação visual do usuário; nenhuma ação mutável
+  nova foi liberada.
 
 ## 4. Roadmap por fases
 
@@ -208,7 +209,7 @@ Estas regras valem para **todas as fases**, salvo autorização explícita em co
 - Performance (CPU/GPU/mem/temp) — requer política dedicada.
 - Media card no Dashboard (EdgeTop tem real; Dashboard ainda fake).
 
-### Fase 6 — Integração Hyprland ✅ IMPLEMENTADA NO CÓDIGO / EM VALIDAÇÃO VISUAL
+### Fase 6 — Integração Hyprland + reestruturação visual ✅ IMPLEMENTADA / EM VALIDAÇÃO VISUAL
 
 **Tarefas**
 - workspaces reais via módulo nativo do Hyprland; ✅
@@ -227,11 +228,26 @@ Estas regras valem para **todas as fases**, salvo autorização explícita em co
 **Resultado (2026-06-07): IMPLEMENTADA EM MODO READ-ONLY**
 - `services/Hyprland.qml` consolidado sobre `Quickshell.Hyprland`.
 - `components/MarqueeText.qml` criado para overflow horizontal suave de títulos longos.
-- `EdgeLeft`: workspaces reais por tela, estados visuais, resumo de workspace na tela e resumo da janela ativa.
-- `EdgeTop`: aba Workspaces com workspaces reais em cards resumidos; aba Media com títulos/subtítulos longos protegidos por marquee.
+- `EdgeLeft`: agora também funciona como seletor de contexto do TopSheet.
+- `TopSheet`: nova superfície superior com animação de descida e troca de páginas.
+- `WorkspacesPage`: workspaces reais em cards resumidos.
+- `MediaPage`: títulos/subtítulos longos protegidos por marquee e controles MPRIS reaproveitados.
 - sem alteração em `~/.config/hypr` e sem controles mutáveis do compositor.
 
-### Fase 7 — Controles reais
+### Fase 7 — Consolidação da arquitetura nova
+
+**Tarefas**
+- validar visualmente multi-monitor da nova shell;
+- revisar densidade, altura e largura do TopSheet;
+- decidir se `EdgeTop` legado deve ser removida do repo ou preservada como referência;
+- decidir se `Launcher` legado pode ser arquivado depois da validação da `SearchPage`.
+
+**Critério de conclusão**
+- TopSheet validado pelo usuário;
+- nenhuma duplicação visual remanescente;
+- legado claramente documentado.
+
+### Fase 8 — Controles reais
 
 **Tarefas**
 - volume;
@@ -244,7 +260,7 @@ Estas regras valem para **todas as fases**, salvo autorização explícita em co
 - sliders controlam o sistema com segurança;
 - nada quebra Waybar/HyDE.
 
-### Fase 8 — Tema dinâmico e personalização
+### Fase 9 — Tema dinâmico e personalização
 
 **Tarefas**
 - tema claro/escuro;
@@ -256,7 +272,7 @@ Estas regras valem para **todas as fases**, salvo autorização explícita em co
 - tema consistente;
 - personalização sem editar vários arquivos.
 
-### Fase 9 — Performance e robustez
+### Fase 10 — Performance e robustez
 
 **Tarefas**
 - medir CPU/RAM;

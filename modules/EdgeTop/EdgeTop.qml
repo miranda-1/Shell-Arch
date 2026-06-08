@@ -39,18 +39,6 @@ PanelWindow {
 
         return count;
     }
-    readonly property string mediaSubtitle: {
-        if (!Media.available)
-            return "Abra um player para preencher este espaço.";
-        if (Media.artist && Media.album)
-            return Media.artist + " \u2014 " + Media.album;
-        if (Media.artist)
-            return Media.artist;
-        if (Media.album)
-            return Media.album;
-        return "Fonte de m\u00eddia indispon\u00edvel";
-    }
-
     function workspaceStateText(workspace, realWorkspace) {
         if (!realWorkspace)
             return workspace && workspace.focused ? "focused" : workspace && workspace.active ? "active" : "idle";
@@ -178,14 +166,14 @@ PanelWindow {
                     anchors.verticalCenter: parent.verticalCenter
                     spacing: 10
                     MarqueeText {
-                        text: Media.available ? Media.title : "Nada tocando"
+                        text: Media.displayTitle
                         maxWidth: 380
                         pixelSize: 22
                         bold: true
                         color: Theme.text
                     }
                     MarqueeText {
-                        text: root.mediaSubtitle
+                        text: Media.displaySubtitle
                         maxWidth: 360
                         pixelSize: 14
                         color: Theme.textDim
@@ -193,11 +181,145 @@ PanelWindow {
                         endPauseDuration: 800
                     }
                     Row {
+                        spacing: 8
+
+                        Rectangle {
+                            width: statusBadgeText.implicitWidth + 16
+                            height: 24
+                            radius: 12
+                            color: Media.isPlaying ? Theme.accentSoft : Theme.cardHover
+
+                            Text {
+                                id: statusBadgeText
+                                anchors.centerIn: parent
+                                text: Media.statusText
+                                font.pixelSize: 11
+                                color: Media.isPlaying ? Theme.accentActive : Theme.textDim
+                            }
+                        }
+
+                        Rectangle {
+                            visible: Media.available
+                            width: sourceBadgeText.implicitWidth + 16
+                            height: 24
+                            radius: 12
+                            color: Theme.cardHover
+
+                            Text {
+                                id: sourceBadgeText
+                                anchors.centerIn: parent
+                                text: Media.activePlayerName
+                                font.pixelSize: 11
+                                color: Theme.textDim
+                            }
+                        }
+
+                        Rectangle {
+                            visible: Media.playerCount > 1
+                            width: countBadgeText.implicitWidth + 16
+                            height: 24
+                            radius: 12
+                            color: Theme.cardHover
+
+                            Text {
+                                id: countBadgeText
+                                anchors.centerIn: parent
+                                text: Media.playerCount + " players"
+                                font.pixelSize: 11
+                                color: Theme.textDim
+                            }
+                        }
+                    }
+                    Row {
                         spacing: Theme.pad + 6
                         topPadding: 6
-                        Text { text: ""; font.family: Theme.iconFont; font.pixelSize: 22; color: Theme.textDim }  // prev
-                        Text { text: Media.isPlaying ? "" : ""; font.family: Theme.iconFont; font.pixelSize: 28; color: Theme.accent }   // estado play/pause (read-only)
-                        Text { text: ""; font.family: Theme.iconFont; font.pixelSize: 22; color: Theme.textDim }  // next
+                        Item {
+                            width: 24
+                            height: 24
+                            opacity: Media.canPrevious ? 1 : 0.38
+                            scale: previousTap.pressed && Media.canPrevious ? 0.92 : previousHover.hovered && Media.canPrevious ? 1.06 : 1.0
+
+                            Behavior on scale { NumberAnimation { duration: Theme.tFast; easing.type: Easing.OutCubic } }
+
+                            Text {
+                                anchors.centerIn: parent
+                                text: ""
+                                font.family: Theme.iconFont
+                                font.pixelSize: 22
+                                color: Theme.textDim
+                            }
+
+                            HoverHandler {
+                                id: previousHover
+                                enabled: Media.canPrevious
+                                cursorShape: Media.canPrevious ? Qt.PointingHandCursor : Qt.ArrowCursor
+                            }
+
+                            TapHandler {
+                                id: previousTap
+                                acceptedButtons: Qt.LeftButton
+                                enabled: Media.canPrevious
+                                onTapped: Media.previous()
+                            }
+                        }
+                        Item {
+                            width: 30
+                            height: 30
+                            opacity: Media.canPlayPause ? 1 : 0.5
+                            scale: playPauseTap.pressed && Media.canPlayPause ? 0.92 : playPauseHover.hovered && Media.canPlayPause ? 1.05 : 1.0
+
+                            Behavior on scale { NumberAnimation { duration: Theme.tFast; easing.type: Easing.OutCubic } }
+
+                            Text {
+                                anchors.centerIn: parent
+                                text: Media.isPlaying ? "" : ""
+                                font.family: Theme.iconFont
+                                font.pixelSize: 28
+                                color: Media.canPlayPause ? Theme.accent : Theme.textDim
+                            }
+
+                            HoverHandler {
+                                id: playPauseHover
+                                enabled: Media.canPlayPause
+                                cursorShape: Media.canPlayPause ? Qt.PointingHandCursor : Qt.ArrowCursor
+                            }
+
+                            TapHandler {
+                                id: playPauseTap
+                                acceptedButtons: Qt.LeftButton
+                                enabled: Media.canPlayPause
+                                onTapped: Media.playPause()
+                            }
+                        }
+                        Item {
+                            width: 24
+                            height: 24
+                            opacity: Media.canNext ? 1 : 0.38
+                            scale: nextTap.pressed && Media.canNext ? 0.92 : nextHover.hovered && Media.canNext ? 1.06 : 1.0
+
+                            Behavior on scale { NumberAnimation { duration: Theme.tFast; easing.type: Easing.OutCubic } }
+
+                            Text {
+                                anchors.centerIn: parent
+                                text: ""
+                                font.family: Theme.iconFont
+                                font.pixelSize: 22
+                                color: Theme.textDim
+                            }
+
+                            HoverHandler {
+                                id: nextHover
+                                enabled: Media.canNext
+                                cursorShape: Media.canNext ? Qt.PointingHandCursor : Qt.ArrowCursor
+                            }
+
+                            TapHandler {
+                                id: nextTap
+                                acceptedButtons: Qt.LeftButton
+                                enabled: Media.canNext
+                                onTapped: Media.next()
+                            }
+                        }
                     }
                     Row {
                         spacing: Theme.gap
