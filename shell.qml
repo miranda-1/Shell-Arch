@@ -1,9 +1,7 @@
 //@ pragma Env QSG_RENDER_LOOP=threaded
 
 import "modules/EdgeLeft"
-import "modules/EdgeTop"
-import "modules/EdgeRight"
-import "modules/Launcher"
+import "modules/TopSheet"
 import Quickshell
 
 // Entrypoint isolado. Roda com:  qs -p ~/Projetos/ui-shell-prototype/shell.qml
@@ -16,11 +14,36 @@ ShellRoot {
         delegate: Scope {
             id: scope
             required property var modelData
+            property string currentPage: "dashboard"
+            property bool contextOpen: false
 
-            EdgeLeft  { modelData: scope.modelData }
-            EdgeTop   { modelData: scope.modelData }
-            EdgeRight { modelData: scope.modelData }
-            Launcher  { modelData: scope.modelData }
+            function toggleContextPage(pageId) {
+                if (scope.contextOpen && scope.currentPage === pageId) {
+                    scope.contextOpen = false;
+                    return;
+                }
+
+                scope.currentPage = pageId;
+                scope.contextOpen = true;
+            }
+
+            function closeContext() {
+                scope.contextOpen = false;
+            }
+
+            EdgeLeft {
+                modelData: scope.modelData
+                currentPage: scope.currentPage
+                contextOpen: scope.contextOpen
+                onRequestPage: (pageId) => scope.toggleContextPage(pageId)
+            }
+
+            TopSheet {
+                modelData: scope.modelData
+                currentPage: scope.currentPage
+                open: scope.contextOpen
+                onRequestClose: scope.closeContext()
+            }
         }
     }
 }

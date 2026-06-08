@@ -5,17 +5,18 @@ import Quickshell
 import Quickshell.Wayland
 import QtQuick
 
-// Barra vertical principal (estilo dos prints): fina e sempre presente.
-// Topo: logo + apps (ativo em círculo clay) + dots de workspace reais.
-// Centro: label "Desktop" + monitor. Base: tray + relógio empilhado + status +
-// power. Hover destaca o ícone e revela tooltip lateral.
 PanelWindow {
     id: root
+
     required property var modelData
+    required property string currentPage
+    required property bool contextOpen
+
+    signal requestPage(string pageId)
+
     screen: modelData
     readonly property string screenMonitorName: Hyprland.monitorNameForScreen(root.screen)
     readonly property var workspaceDots: Hyprland.workspacesForScreen(root.screen)
-    readonly property bool hasRealWorkspaces: root.workspaceDots.length > 0
     readonly property var screenWorkspace: Hyprland.activeWorkspaceForScreen(root.screen)
     readonly property var fallbackWorkspaceDots: [
         { label: "1", active: true, focused: true },
@@ -23,6 +24,7 @@ PanelWindow {
         { label: "3", active: false, focused: false }
     ]
     readonly property var visibleWorkspaceDots: root.workspaceDots.length > 0 ? root.workspaceDots : root.fallbackWorkspaceDots
+    readonly property bool hasRealWorkspaces: root.workspaceDots.length > 0
     readonly property bool hasActiveWindow: Hyprland.activeWindowTitle !== "Sem janela ativa"
     readonly property string activeWindowTooltip: root.hasActiveWindow
         ? "App: " + Hyprland.activeWindowClass + "\nJanela: " + Hyprland.activeWindowTitle
@@ -30,6 +32,10 @@ PanelWindow {
     readonly property string screenWorkspaceTooltip: root.screenWorkspace
         ? "Workspace " + Hyprland.workspaceLabel(root.screenWorkspace) + "\n" + Hyprland.workspaceWindowSummary(root.screenWorkspace)
         : "Desktop"
+
+    function isPageActive(pageId) {
+        return root.contextOpen && root.currentPage === pageId;
+    }
 
     function workspaceTooltipText(workspace, realWorkspace, activeWorkspace, focusedWorkspace) {
         const label = realWorkspace ? Hyprland.workspaceLabel(workspace) : (workspace && workspace.label ? workspace.label : "\u2014");
@@ -46,28 +52,18 @@ PanelWindow {
     }
 
     anchors { left: true; top: true; bottom: true }
-    exclusiveZone: Theme.barW                       // reserva só a barra fina
-    implicitWidth: Theme.barW + Theme.tooltipReserve // resto = área de tooltip
+    exclusiveZone: Theme.barW
+    implicitWidth: Theme.barW + Theme.tooltipReserve
     color: "transparent"
-
     WlrLayershell.layer: WlrLayer.Top
-
-    // só a barra fina captura mouse; o resto da janela é click-through
     mask: Region { x: 0; y: 0; width: Theme.barW; height: root.height }
 
-    // casca visível da barra: uma "pill" vertical maior, cortada pela borda
-    // esquerda do monitor. A parte arredondada esquerda do barBg fica em x<0
-    // (fora da janela), então o lado esquerdo já lê como reto SEM precisar de
-    // clip. Mantemos clip:false para os tooltips (filhos em x≥barW) renderizarem
-    // na área de reserva à direita em vez de serem recortados pela casca.
     Item {
-        id: shellShape
         anchors { left: parent.left; top: parent.top; bottom: parent.bottom }
         width: Theme.barW
         clip: false
 
         Rectangle {
-            id: barBg
             anchors { top: parent.top; bottom: parent.bottom }
             x: -30
             width: Theme.barW + 30
@@ -81,34 +77,65 @@ PanelWindow {
         Item {
             anchors.fill: parent
 
-            // ---- topo: logo + apps + workspaces ----
             Column {
-                id: topCol
                 anchors { top: parent.top; topMargin: Theme.gap; horizontalCenter: parent.horizontalCenter }
                 spacing: 2
 
-                IconButton { glyph: ""; glyphColor: Theme.accent; label: "Arch Linux" }
-                Item { width: 1; height: Theme.gap }
-                IconButton { glyph: ""; label: "Terminal" }
-                IconButton { glyph: ""; label: "Navegador" }
-                IconButton { glyph: ""; label: "Arquivos" }
-                IconButton {
-                    glyph: ""
-                    active: root.hasActiveWindow
-                    glyphColor: root.hasActiveWindow ? Theme.accent : Theme.textDim
-                    label: root.activeWindowTooltip
+                ContextButton {
+                    glyph: ""
+                    label: "Dashboard"
+                    active: root.isPageActive("dashboard")
+                    glyphColor: Theme.accent
+                    onClicked: root.requestPage("dashboard")
                 }
-                // divisor sutil: separa o grupo de apps dos workspaces
+
+                ContextButton {
+                    glyph: ""
+                    label: "Busca e launcher"
+                    active: root.isPageActive("search")
+                    onClicked: root.requestPage("search")
+                }
+
+                ContextButton {
+                    glyph: ""
+                    label: "Calendário"
+                    active: root.isPageActive("calendar")
+                    onClicked: root.requestPage("calendar")
+                }
+
+                ContextButton {
+                    glyph: ""
+                    label: "Controles"
+                    active: root.isPageActive("controls")
+                    onClicked: root.requestPage("controls")
+                }
+
+                ContextButton {
+                    glyph: ""
+                    label: Media.available ? "Mídia: " + Media.displayTitle : "Mídia"
+                    active: root.isPageActive("media")
+                    onClicked: root.requestPage("media")
+                }
+
                 Item {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    width: Theme.iconSize; height: Theme.gap
+                    width: Theme.iconSize
+                    height: Theme.gap
+
                     Divider { anchors.centerIn: parent }
                 }
 
-                // dots de workspace
+                ContextButton {
+                    glyph: ""
+                    label: root.screenWorkspaceTooltip
+                    active: root.isPageActive("workspaces")
+                    onClicked: root.requestPage("workspaces")
+                }
+
                 Column {
                     anchors.horizontalCenter: parent.horizontalCenter
                     spacing: 7
+
                     Repeater {
                         model: root.visibleWorkspaceDots
                         delegate: Item {
@@ -196,62 +223,71 @@ PanelWindow {
                 }
             }
 
-            // ---- centro: label Desktop ----
             Column {
                 anchors.centerIn: parent
                 spacing: Theme.gap
-                IconButton { glyph: ""; glyphColor: Theme.textDim; label: root.screenWorkspaceTooltip }
+
+                ContextButton {
+                    glyph: ""
+                    label: root.activeWindowTooltip
+                    active: root.isPageActive("system")
+                    glyphColor: root.hasActiveWindow ? Theme.accent : Theme.textDim
+                    onClicked: root.requestPage("system")
+                }
+
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    text: "Desktop"
+                    text: root.screenMonitorName
                     color: Theme.textDim
-                    font.pixelSize: 12
+                    font.pixelSize: 11
                     rotation: -90
                 }
             }
 
-            // ---- base: tray + relógio + status + power ----
             Column {
-                id: bottomCol
                 anchors { bottom: parent.bottom; bottomMargin: Theme.gap; horizontalCenter: parent.horizontalCenter }
                 spacing: 2
 
-                IconButton { glyph: ""; glyphColor: Theme.textDim; label: "Bluetooth" }
-                IconButton { glyph: ""; glyphColor: Theme.textDim; label: "SafeEyes" }
-                IconButton { glyph: ""; glyphColor: Theme.textDim; label: "Discord" }
-                IconButton { glyph: ""; glyphColor: Theme.textDim; label: "HyDE" }
-                IconButton { glyph: ""; glyphColor: Theme.textDim; label: "Spotify" }
-                IconButton { glyph: ""; glyphColor: Theme.textDim; label: "Calendário" }
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: Clock.hour
+                    color: Theme.text
+                    font.pixelSize: 15
+                    font.bold: true
+                }
 
-                // divisor sutil: separa o tray do relógio/status
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: Clock.minute
+                    color: Theme.textDim
+                    font.pixelSize: 15
+                }
+
                 Item {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    width: Theme.iconSize; height: Theme.gap
+                    width: Theme.iconSize
+                    height: Theme.gap
+
                     Divider { anchors.centerIn: parent }
                 }
 
-                // relógio empilhado 21 / 40
-                Column {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    spacing: -1
-                    topPadding: Theme.gap / 2
-                    bottomPadding: Theme.gap / 2
-                    Text {
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        text: Clock.hour; color: Theme.text
-                        font.pixelSize: 15; font.bold: true
-                    }
-                    Text {
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        text: Clock.minute; color: Theme.textDim
-                        font.pixelSize: 15
-                    }
+                ContextButton {
+                    glyph: ""
+                    label: "Sistema\n" + (System.uptimeText || "uptime indisponível")
+                    active: root.isPageActive("system")
+                    glyphColor: Theme.textDim
+                    onClicked: root.requestPage("system")
                 }
 
-                IconButton { glyph: ""; glyphColor: Theme.textDim; label: Network.statusText }
-                IconButton { glyph: ""; glyphColor: Theme.textDim; label: "Bluetooth" }
-                IconButton { glyph: ""; glyphColor: Theme.accent; label: "Perfil: " + Battery.profileText }
-                IconButton { glyph: ""; glyphColor: Theme.textDim; label: "Desligar" }
+                ContextButton {
+                    glyph: ""
+                    label: Battery.available
+                        ? "Perfil e energia\n" + Battery.statusText + " • " + Battery.profileText
+                        : "Perfil e energia"
+                    active: root.isPageActive("profile")
+                    glyphColor: Theme.textDim
+                    onClicked: root.requestPage("profile")
+                }
             }
         }
     }
