@@ -15,10 +15,16 @@ Rectangle {
     border.width: 1
     border.color: root.emphasized ? Qt.rgba(1, 1, 1, 0.08) : Theme.stroke
     antialiasing: true
-    implicitHeight: 132
+    // altura natural acompanha o conteúdo: textos com wrap/elide nunca
+    // estouram a borda inferior do card
+    implicitHeight: contentCol.implicitHeight + Theme.pad * 2
+    clip: true
 
     Column {
-        anchors.fill: parent
+        id: contentCol
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.top: parent.top
         anchors.margins: Theme.pad
         spacing: 10
 
@@ -39,25 +45,33 @@ Rectangle {
         }
 
         Text {
+            width: parent.width
             text: root.title
             font.pixelSize: Theme.fsBody
             color: root.emphasized ? Qt.rgba(1, 1, 1, 0.72) : Theme.textDim
+            elide: Text.ElideRight
         }
 
         Text {
+            width: parent.width
             text: root.value
             font.pixelSize: Theme.fsHeadline
             font.bold: true
             color: root.emphasized ? Theme.textOnAccent : Theme.text
             wrapMode: Text.Wrap
+            maximumLineCount: 2
+            elide: Text.ElideRight
         }
 
         Text {
+            width: parent.width
             visible: root.subtitle.length > 0
             text: root.subtitle
             font.pixelSize: Theme.fsBody
             color: root.emphasized ? Qt.rgba(1, 1, 1, 0.78) : Theme.textDim
             wrapMode: Text.Wrap
+            maximumLineCount: 2
+            elide: Text.ElideRight
         }
     }
 }
