@@ -8,13 +8,43 @@ Item {
 
     property bool open: false
 
+    signal requestClose()
+
     implicitHeight: content.implicitHeight
+
+    // seleção via teclado — sempre apontando para um índice válido da lista
+    property int selectedIndex: 0
+    readonly property int resultCount: appModel.apps.length
+    readonly property bool searching: appModel.query.trim().length > 0
+
+    readonly property string glyphSearch: ""   // lupa
+
+    onResultCountChanged: {
+        if (root.selectedIndex >= root.resultCount)
+            root.selectedIndex = Math.max(0, root.resultCount - 1);
+    }
+
+    onOpenChanged: {
+        if (root.open) {
+            searchInput.text = "";
+            root.selectedIndex = 0;
+            searchInput.forceActiveFocus();
+        }
+    }
 
     function launchApp(app) {
         if (!app || !app.desktopEntry)
             return;
 
         app.desktopEntry.execute();
+        root.requestClose();
+    }
+
+    function launchSelected() {
+        if (root.resultCount === 0)
+            return;
+
+        root.launchApp(appModel.apps[Math.min(root.selectedIndex, root.resultCount - 1)]);
     }
 
     DesktopAppModel {
@@ -28,191 +58,275 @@ Item {
         width: root.width
         spacing: Theme.pad
 
+        // ---- campo de busca (sem pill dentro do input) ----
         Rectangle {
+            id: searchField
             width: parent.width
-            height: 72
-            radius: 36
+            height: 64
+            radius: 32
             antialiasing: true
             color: Theme.card
             border.width: 1
             border.color: searchInput.activeFocus ? Theme.strokeStrong : Theme.stroke
 
-            Row {
-                anchors.fill: parent
-                anchors.leftMargin: Theme.pad + 4
-                anchors.rightMargin: Theme.pad + 4
-                spacing: Theme.pad
+            TapHandler {
+                onTapped: searchInput.forceActiveFocus()
+            }
 
-                Text {
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: ""
-                    font.family: Theme.iconFont
-                    font.pixelSize: 18
-                    color: Theme.textDim
+            HoverHandler {
+                cursorShape: Qt.IBeamCursor
+            }
+
+            Text {
+                id: searchGlyph
+                anchors.left: parent.left
+                anchors.leftMargin: Theme.pad + 8
+                anchors.verticalCenter: parent.verticalCenter
+                text: root.glyphSearch
+                font.family: Theme.iconFont
+                font.pixelSize: 18
+                color: searchInput.activeFocus ? Theme.accent : Theme.textDim
+            }
+
+            TextInput {
+                id: searchInput
+                anchors.left: searchGlyph.right
+                anchors.leftMargin: Theme.pad
+                anchors.right: parent.right
+                anchors.rightMargin: Theme.pad + 8
+                anchors.verticalCenter: parent.verticalCenter
+                color: Theme.text
+                font.pixelSize: Theme.fsTitle
+                clip: true
+                selectionColor: Theme.accentSoft
+                selectedTextColor: Theme.text
+                renderType: Text.NativeRendering
+                verticalAlignment: Text.AlignVCenter
+
+                onTextChanged: root.selectedIndex = 0
+
+                Keys.onReturnPressed: root.launchSelected()
+                Keys.onEnterPressed: root.launchSelected()
+                Keys.onDownPressed: {
+                    if (root.resultCount > 0)
+                        root.selectedIndex = Math.min(root.selectedIndex + 1, root.resultCount - 1);
+                }
+                Keys.onUpPressed: {
+                    if (root.resultCount > 0)
+                        root.selectedIndex = Math.max(0, root.selectedIndex - 1);
+                }
+                Keys.onEscapePressed: {
+                    if (searchInput.text.length > 0)
+                        searchInput.text = "";
+                    else
+                        root.requestClose();
                 }
 
-                TextInput {
-                    id: searchInput
-                    anchors.verticalCenter: parent.verticalCenter
-                    width: parent.width - 170
-                    color: Theme.text
-                    font.pixelSize: Theme.fsTitle
-                    clip: true
-                    selectionColor: Theme.accentSoft
-                    selectedTextColor: Theme.text
-                    renderType: Text.NativeRendering
-                    verticalAlignment: Text.AlignVCenter
-                    Keys.onReturnPressed: {
-                        if (appModel.apps.length > 0)
-                            root.launchApp(appModel.apps[0]);
-                    }
-
-                    Component.onCompleted: {
-                        if (root.open)
-                            forceActiveFocus();
-                    }
+                Component.onCompleted: {
+                    if (root.open)
+                        forceActiveFocus();
                 }
 
+                // placeholder ancorado ao próprio input — nunca por cima do texto
                 Text {
                     visible: searchInput.text.length === 0
+                    anchors.left: parent.left
                     anchors.verticalCenter: parent.verticalCenter
-                    anchors.left: searchInput.left
-                    text: "Buscar apps, ações e favoritos"
+                    text: "Buscar aplicativos, ações e atalhos…"
                     font.pixelSize: Theme.fsTitle
                     color: Theme.textFaint
-                }
-
-                Rectangle {
-                    anchors.verticalCenter: parent.verticalCenter
-                    width: 108
-                    height: 34
-                    radius: 17
-                    color: Theme.accentTrack
-                    antialiasing: true
-
-                    Text {
-                        anchors.centerIn: parent
-                        text: appModel.query.trim().length > 0 ? "Enter abre" : "Favoritos"
-                        font.pixelSize: 11
-                        color: Theme.textDim
-                    }
                 }
             }
         }
 
+        // ---- resultados ----
         Rectangle {
             width: parent.width
-            implicitHeight: appModel.apps.length > 0 ? resultList.implicitHeight + Theme.pad * 2 : 180
+            implicitHeight: resultList.implicitHeight + Theme.pad * 2
             radius: Theme.radius
             color: Theme.card
             border.width: 1
             border.color: Theme.stroke
             antialiasing: true
+            clip: true
 
             Column {
                 id: resultList
-                anchors.fill: parent
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: parent.top
                 anchors.margins: Theme.pad
                 spacing: Theme.gap
 
-                Text {
-                    text: appModel.query.trim().length > 0 ? "Resultados" : "Favoritos e frequentes"
-                    font.pixelSize: Theme.fsLabel
-                    color: Theme.textDim
+                // cabeçalho da seção: título à esquerda, dica de teclado à direita
+                Item {
+                    width: parent.width
+                    height: sectionTitle.implicitHeight
+
+                    Text {
+                        id: sectionTitle
+                        anchors.left: parent.left
+                        text: root.searching ? "Resultados" : "Favoritos e frequentes"
+                        font.pixelSize: Theme.fsLabel
+                        color: Theme.textDim
+                    }
+
+                    Text {
+                        anchors.right: parent.right
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: "↑ ↓ navegam  ·  Enter abre  ·  Esc fecha"
+                        font.pixelSize: Theme.fsCaption
+                        color: Theme.textFaint
+                    }
                 }
 
                 Repeater {
                     model: appModel.apps
+
                     delegate: Rectangle {
+                        id: resultRow
+
                         required property var modelData
-                        width: resultList.width
-                        height: 62
+                        required property int index
+
+                        readonly property bool selected: index === root.selectedIndex
+
+                        width: parent.width
+                        height: 58
                         radius: Theme.radius
                         antialiasing: true
-                        color: rowHover.hovered ? Theme.accentSoft : Theme.accentTrack
+                        color: resultRow.selected ? Theme.accentSoft : Theme.accentTrack
                         border.width: 1
-                        border.color: rowHover.hovered ? Theme.strokeStrong : Theme.stroke
+                        border.color: resultRow.selected ? Theme.strokeStrong : Theme.stroke
+
+                        Behavior on color { ColorAnimation { duration: Theme.tFast } }
 
                         HoverHandler {
-                            id: rowHover
                             cursorShape: Qt.PointingHandCursor
+                            onHoveredChanged: {
+                                if (hovered)
+                                    root.selectedIndex = resultRow.index;
+                            }
                         }
 
                         TapHandler {
                             acceptedButtons: Qt.LeftButton
-                            onTapped: root.launchApp(modelData)
+                            onTapped: root.launchApp(resultRow.modelData)
                         }
 
-                        Row {
-                            anchors.fill: parent
+                        Rectangle {
+                            id: rowIcon
+                            anchors.left: parent.left
+                            anchors.leftMargin: Theme.gap
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: 38
+                            height: 38
+                            radius: 19
+                            antialiasing: true
+                            color: Theme.card
+
+                            Text {
+                                anchors.centerIn: parent
+                                text: resultRow.modelData.initial
+                                font.pixelSize: Theme.fsTitle
+                                font.bold: true
+                                color: Theme.accent
+                            }
+                        }
+
+                        Rectangle {
+                            id: openPill
+                            anchors.right: parent.right
+                            anchors.rightMargin: Theme.gap
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: openLabel.implicitWidth + 22
+                            height: 28
+                            radius: 14
+                            antialiasing: true
+                            color: Theme.card
+                            opacity: resultRow.selected ? 1 : 0
+                            visible: opacity > 0.01
+
+                            Behavior on opacity { NumberAnimation { duration: Theme.tFast } }
+
+                            Text {
+                                id: openLabel
+                                anchors.centerIn: parent
+                                text: "Abrir ↵"
+                                font.pixelSize: Theme.fsCaption
+                                color: Theme.textDim
+                            }
+                        }
+
+                        Column {
+                            anchors.left: rowIcon.right
                             anchors.leftMargin: Theme.pad
+                            anchors.right: openPill.left
                             anchors.rightMargin: Theme.pad
-                            spacing: Theme.pad
+                            anchors.verticalCenter: parent.verticalCenter
+                            spacing: 2
 
-                            Rectangle {
-                                anchors.verticalCenter: parent.verticalCenter
-                                width: 38
-                                height: 38
-                                radius: 19
-                                antialiasing: true
-                                color: Theme.card
-
-                                Text {
-                                    anchors.centerIn: parent
-                                    text: modelData.initial
-                                    font.pixelSize: Theme.fsTitle
-                                    font.bold: true
-                                    color: Theme.accent
-                                }
+                            Text {
+                                width: parent.width
+                                text: resultRow.modelData.name
+                                font.pixelSize: Theme.fsLabel
+                                color: Theme.text
+                                elide: Text.ElideRight
                             }
 
-                            Column {
-                                anchors.verticalCenter: parent.verticalCenter
-                                width: parent.width - 180
-                                spacing: 3
-
-                                Text {
-                                    text: modelData.name
-                                    font.pixelSize: Theme.fsLabel
-                                    color: Theme.text
-                                    elide: Text.ElideRight
-                                }
-
-                                Text {
-                                    text: modelData.subtitle
-                                    font.pixelSize: Theme.fsBody
-                                    color: Theme.textDim
-                                    width: parent.width
-                                    elide: Text.ElideRight
-                                }
-                            }
-
-                            Rectangle {
-                                anchors.verticalCenter: parent.verticalCenter
-                                width: 92
-                                height: 30
-                                radius: 15
-                                color: Theme.card
-                                antialiasing: true
-
-                                Text {
-                                    anchors.centerIn: parent
-                                    text: "Abrir"
-                                    font.pixelSize: 11
-                                    color: Theme.textDim
-                                }
+                            Text {
+                                width: parent.width
+                                visible: resultRow.modelData.subtitle.length > 0
+                                text: resultRow.modelData.subtitle
+                                font.pixelSize: Theme.fsBody
+                                color: Theme.textDim
+                                elide: Text.ElideRight
                             }
                         }
                     }
                 }
 
-                Text {
-                    visible: appModel.apps.length === 0
-                    text: appModel.query.trim().length > 0
-                        ? "Nenhum app encontrado para essa busca."
-                        : "Os apps favoritos do índice local aparecem aqui."
-                    font.pixelSize: Theme.fsBodyLg
-                    color: Theme.textDim
+                // estado vazio
+                Column {
+                    visible: root.resultCount === 0
+                    width: parent.width
+                    spacing: Theme.gap
+                    topPadding: Theme.pad
+                    bottomPadding: Theme.pad
+
+                    Rectangle {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        width: 52
+                        height: 52
+                        radius: 26
+                        antialiasing: true
+                        color: Theme.accentSoft
+
+                        Text {
+                            anchors.centerIn: parent
+                            text: root.glyphSearch
+                            font.family: Theme.iconFont
+                            font.pixelSize: 20
+                            color: Theme.accent
+                        }
+                    }
+
+                    Text {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        text: root.searching
+                            ? "Nenhum resultado para \"" + appModel.query.trim() + "\""
+                            : "Os apps favoritos do índice local aparecem aqui."
+                        font.pixelSize: Theme.fsBodyLg
+                        color: Theme.textDim
+                    }
+
+                    Text {
+                        visible: root.searching
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        text: "Tente outro termo ou Esc para limpar."
+                        font.pixelSize: Theme.fsBody
+                        color: Theme.textFaint
+                    }
                 }
             }
         }

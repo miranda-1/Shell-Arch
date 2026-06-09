@@ -32,6 +32,8 @@ PanelWindow {
     readonly property real panelWidth: Math.min(root.availableWidth, 1180)
     readonly property real panelHeight: Math.min(Math.max(root.screenHeight * 0.57, 480), 720)
     readonly property real topOffset: 18
+    // na busca o painel encosta na EdgeLeft, como extensão do botão de lupa
+    readonly property bool searchDocked: root.currentPage === "search"
     readonly property bool panelVisible: root.open || sheet.opacity > 0.01
     readonly property string pageGlyph: root.metaForPage(root.currentPage).glyph
     readonly property string pageTitle: root.metaForPage(root.currentPage).title
@@ -119,14 +121,48 @@ PanelWindow {
                 && mouse.y >= sheet.y
                 && mouse.y <= sheet.y + sheet.height;
 
-            if (!insidePanel)
+            const insideArm = searchArm.visible
+                && mouse.x >= searchArm.x
+                && mouse.x <= searchArm.x + searchArm.width
+                && mouse.y >= searchArm.y
+                && mouse.y <= searchArm.y + searchArm.height;
+
+            if (!insidePanel && !insideArm)
                 root.requestClose();
         }
     }
 
+    // braço conector: liga o botão de busca da EdgeLeft ao painel quando a
+    // página atual é a busca — desenhado antes do Card para terminar sob ele
+    Rectangle {
+        id: searchArm
+        // centro do botão de busca na EdgeLeft: topMargin (gap) + botão
+        // Dashboard (40) + spacing (2) + metade do próprio botão (20)
+        readonly property real anchorCenterY: Theme.gap + 40 + 2 + 20
+
+        x: root.interactiveLeft
+        y: anchorCenterY - height / 2
+        width: root.open && root.searchDocked
+            ? sheet.x - root.interactiveLeft + Theme.radiusLg
+            : 0
+        height: 36
+        radius: 18
+        antialiasing: true
+        color: Qt.rgba(Theme.surfaceStrong.r, Theme.surfaceStrong.g, Theme.surfaceStrong.b, 0.995)
+        border.width: 1
+        border.color: Theme.strokeStrong
+        opacity: root.open && root.searchDocked ? 1 : 0
+        visible: root.panelVisible && opacity > 0.01
+
+        Behavior on width { NumberAnimation { duration: Theme.tBase; easing.type: Easing.OutExpo } }
+        Behavior on opacity { NumberAnimation { duration: Theme.tFast } }
+    }
+
     Card {
         id: sheet
-        x: root.interactiveLeft + Math.max(24, (root.width - root.interactiveLeft - root.panelWidth) / 2)
+        x: root.interactiveLeft + (root.searchDocked
+            ? 24
+            : Math.max(24, (root.width - root.interactiveLeft - root.panelWidth) / 2))
         y: root.open ? root.topOffset : -root.panelHeight - 40
         width: root.panelWidth
         height: root.panelHeight
@@ -200,6 +236,7 @@ PanelWindow {
         SearchPage {
             width: pageLoader.width
             open: root.open
+            onRequestClose: root.requestClose()
         }
     }
 
