@@ -237,31 +237,49 @@ Estas regras valem para **todas as fases**, salvo autorização explícita em co
 - `MediaPage`: títulos/subtítulos longos protegidos por marquee e controles MPRIS reaproveitados.
 - sem alteração em `~/.config/hypr` e sem controles mutáveis do compositor.
 
-### Fase 7 — Consolidação da arquitetura nova
+### Fase 7 — Consolidação da arquitetura nova ✅ CONCLUÍDA FUNCIONALMENTE (2026-06-09)
 
 **Tarefas**
-- validar visualmente multi-monitor da nova shell;
-- revisar densidade, altura e largura do TopSheet;
-- decidir se `EdgeTop` legado deve ser removida do repo ou preservada como referência;
-- decidir se `Launcher` legado pode ser arquivado depois da validação da `SearchPage`.
+- validar visualmente multi-monitor da nova shell; ✅
+- revisar densidade, altura e largura do TopSheet; ✅
+- decidir se `EdgeTop` legado deve ser removida do repo ou preservada como referência; (carryover)
+- decidir se `Launcher` legado pode ser arquivado depois da validação da `SearchPage`. (carryover)
+
+**Resultado (2026-06-09)**
+- Dashboard refinado (hero data/hora, janela ativa com chips, mídia em faixa);
+- SearchPage virou launcher completo, acoplado à lupa, com teclado restaurado;
+- abas do TopSheet coladas na sidebar, nascendo do botão que as abriu, com
+  coreografia horizontal de troca e altura encaixada no conteúdo — **aprovado**;
+- correção estrutural: `interactiveLeft = 0` (janela já desconta a exclusiveZone
+  da EdgeLeft; o gap fantasma de 46px era coordenada somada em dobro);
+- **carryover**: arquivamento formal do legado (EdgeTop/EdgeRight/Launcher)
+  ainda não decidido.
 
 **Critério de conclusão**
-- TopSheet validado pelo usuário;
-- nenhuma duplicação visual remanescente;
-- legado claramente documentado.
+- TopSheet validado pelo usuário; ✅
+- nenhuma duplicação visual remanescente; ✅
+- legado claramente documentado. ✅ (decisão de remoção pendente)
 
-### Fase 8 — Controles reais
+### Fase 8 — Controles reais ✅ IMPLEMENTADA (2026-06-09) / EM VALIDAÇÃO NO RUNTIME
 
 **Tarefas**
-- volume;
-- mute;
-- brilho;
-- MPRIS/mídia;
-- rede/Bluetooth primeiro como status, depois ações se aprovado.
+- volume; ✅ (Pipewire via `services/Audio.qml` — slider arrastável)
+- mute; ✅ (clique no badge de % do slider)
+- brilho; ❌ adiado — monitor externo exige DDC/ddcutil = `Process` (proibido
+  sem autorização explícita; slider segue placeholder honesto)
+- MPRIS/mídia; ✅ (já existia, preservado)
+- rede/Bluetooth primeiro como status, depois ações se aprovado. ✅
+  (Wi-Fi: toggle + scan + lista + conectar em rede salva; Bluetooth: toggle do
+  adapter + conectar/desconectar pareados via `services/Bluez.qml`)
+
+**Política aplicada**
+- toda mutação **somente via API typed do Quickshell**, centralizada nos
+  serviços; nenhuma senha/secret passa pela shell; nenhum `Process` novo.
 
 **Critério de conclusão**
-- sliders controlam o sistema com segurança;
-- nada quebra Waybar/HyDE.
+- sliders controlam o sistema com segurança; ⏳ implementado, **aguardando
+  validação do usuário no runtime** (Bluetooth é o primeiro uso do módulo);
+- nada quebra Waybar/HyDE. ✅ (sem processo externo, sem config tocada)
 
 ### Fase 9 — Tema dinâmico e personalização
 
@@ -335,12 +353,18 @@ Estas regras valem para **todas as fases**, salvo autorização explícita em co
 
 ## 5. Ordem imediata recomendada
 
-Fases 0–6 implementadas no código. A partir do estado atual:
+Fases 0–8 implementadas no código (Fase 8 aguardando validação). A partir do estado atual:
 
-1. validar visualmente a Fase 6 com troca de workspace, foco, multi-monitor e textos longos de mídia;
-2. corrigir qualquer ajuste fino visual, de marquee ou de fallback encontrado nessa validação;
-3. só depois disso discutir a Fase 7, com ações reais atrás de autorização explícita;
-4. seguir sem alterar `~/.config/hypr` nem configs Hyprland reais.
+1. usuário valida a **ControlsPage no runtime**: toggle e lista de Wi-Fi,
+   Bluetooth (ponto mais sensível — primeiro uso do módulo), volume/mute,
+   alternância de perfil; corrigir o que estranhar;
+2. decidir o caso do **brilho**: DDC/ddcutil = `Process` → exige conversa e
+   autorização explícita antes de qualquer implementação;
+3. **CPU/MEM/TMP reais na SystemPage** via `FileView /proc` (leitura, dentro da
+   política vigente);
+4. carryovers: SystemTray real, ícones reais no launcher, decisão de
+   arquivamento do legado (EdgeTop/EdgeRight/Launcher);
+5. seguir sem alterar `~/.config/hypr` nem configs Hyprland reais.
 
 ## 6. Commits sugeridos por tipo
 
@@ -355,10 +379,14 @@ Fases 0–6 implementadas no código. A partir do estado atual:
 
 ## 7. Não fazer agora
 
-- não mexer no EdgeRight (aprovado/congelado);
-- não reativar o `ScreenFrame` (DEPRECATED);
-- não regredir dados reais da Fase 5 para fake;
-- não implementar controles reais (MPRIS play/pause, volume, brilho) ainda;
+- não reativar legado (`ScreenFrame` DEPRECATED, EdgeTop/EdgeRight/Launcher antigos);
+- não regredir dados reais para fake nem o visual aprovado das abas acopladas;
+- não voltar a somar `Theme.barW` nas coordenadas do TopSheet (`interactiveLeft = 0`);
+- não usar fundo translúcido (`Theme.bar`) no painel — fantasma sobre janelas;
+- não implementar **brilho** sem conversa/autorização (exigiria `Process`/DDC);
+- não adicionar mutação fora dos serviços typed de `services/` (política 2026-06-09);
+- não parear/esquecer dispositivos Bluetooth nem gravar credenciais pela shell;
+- não colar glyphs PUA crus em arquivos (somem) — gravar via Python `chr()` + validar com hexdump;
 - não alterar `~/.config/hypr` nem configs Hyprland reais;
 - não criar autostart nem fazer deploy por enquanto;
 - não substituir a Waybar;
