@@ -37,37 +37,40 @@ Estas regras valem para **todas as fases**, salvo autorização explícita em co
 - **sempre criar commits pequenos** e focados;
 - **nunca dar push sem autorização**.
 
-## 3. Estado atual resumido (atualizado 2026-06-07 — reestruturação Sidebar + TopSheet implementada)
+## 3. Estado atual resumido (atualizado 2026-06-09 — abas acopladas + controles funcionais)
 
-- trabalho direto na **`main`** (linha oficial; sem branches);
-- `shell.qml` monta **EdgeLeft** e **TopSheet** por tela;
-- o projeto roda via **`qs -p`** (entrypoint isolado, não substitui nada do sistema);
-- **`ScreenFrame` está inativo** e marcado **DEPRECATED** (não importado, não remover);
-- **multi-monitor ativo** — uma instância de cada borda em todos os monitores;
+- trabalho direto na **`main`** (linha oficial; sem branches); working tree limpa,
+  HEAD `869154e`;
+- `shell.qml` monta **EdgeLeft** e **TopSheet** por tela; roda via **`qs -p`**;
+- **`ScreenFrame` inativo/DEPRECATED**; EdgeTop/EdgeRight/Launcher antigos são
+  legado desmontado;
 - **visual P&B/grafite aprovado** (tema claro monocromático);
-- **Sidebar -> TopSheet** é agora o fluxo principal aprovado para validação;
-- `modules/EdgeTop`, `modules/EdgeRight` e `modules/Launcher` ficaram como legado
-  no repositório e **não** estão montados no runtime atual;
-- a busca real foi absorvida na `SearchPage` do TopSheet via `DesktopAppModel`;
-- **Fase 3 concluída**: `Divider.qml` criado e aplicado, tokens de
-  tipografia/glyph/dimensão no `Theme.qml`, `ScreenFrame` DEPRECATED.
-- **Fase 4 concluída funcionalmente**; ícones reais no Launcher como melhoria futura.
-- **Fase 5 concluída funcionalmente**: dados reais somente leitura integrados via
-  `services/` (Clock, Battery, Media, Network, System); `IconButton` sem flicker;
-  tooltips corrigidos (clip + elide). Ainda fake: CPU/GPU e SystemTray.
-- **Fase 6 implementada em modo read-only**: `services/Hyprland.qml`, workspaces
-  reais por tela no EdgeLeft, janela ativa real, monitor real por tela e
-  `WorkspacesPage` real no TopSheet.
-- **Refatoração arquitetural aplicada em 2026-06-07**:
-  - nova `modules/TopSheet/TopSheet.qml`;
-  - páginas `Dashboard`, `Search`, `Calendar`, `Controls`, `Media`,
-    `Workspaces`, `System`, `Profile`;
-  - `ContextButton`, `TopSheetHeader`, `QuickToggle`, `ControlSlider`,
-    `MetricCard` como nova base visual;
-  - `Controls` com placeholders read-only explícitos para volume/brilho/Bluetooth;
-  - `Media` e `Workspaces` preservando ações reais já aprovadas.
-- **estado atual**: pronta para validação visual do usuário; nenhuma ação mutável
-  nova foi liberada.
+- **abas acopladas à sidebar (aprovadas em 2026-06-09)**: cada página do TopSheet
+  nasce colada na EdgeLeft, na linha do seu botão, deslizando de dentro da barra
+  (horizontal, `tSlow`); troca de página recolhe → troca escondido → revela;
+  altura do painel encaixa no conteúdo; Sistema/Perfil ancoram pela base;
+  ⚠️ `interactiveLeft = 0` (a janela já desconta a exclusiveZone da barra —
+  nunca somar `Theme.barW` de novo);
+- **SearchPage aprovada**: launcher completo (foco automático, ↑/↓, Enter abre e
+  fecha, Esc limpa→fecha, hover unificado com teclado, estado vazio), sem header,
+  alinhada à lupa, largura própria (760);
+- **DashboardPage refinada e aprovada**: hero de data/hora, janela ativa com
+  chips, Rede/Energia, faixa de mídia com marquee; `MetricCard` com altura
+  derivada do conteúdo + elide (fix de texto vazando);
+- **POLÍTICA DE MUTAÇÃO ATUALIZADA (2026-06-09)**: escritas autorizadas
+  **somente via API typed do Quickshell**, centralizadas em `services/`;
+  `Process`/comando externo segue proibido;
+- **Controles funcionais implementados (Fase 8 antecipada, em validação)**:
+  Wi-Fi (toggle/scan/lista/conectar em rede salva — `Network.qml` estendido),
+  Bluetooth (toggle/pareados — serviço novo `Bluez.qml`), volume real Pipewire
+  (serviço novo `Audio.qml`, mute no badge), perfil de energia alternável
+  (`Battery.cycleProfile()`); brilho segue placeholder (DDC exigiria `Process`);
+- `QuickToggle` (corpo/switch com sinais) e `ControlSlider` (arrasto) agora são
+  interativos; `services/qmldir` registra 8 singletons;
+- ainda fake/pendente: brilho, CPU/MEM/TMP na SystemPage, SystemTray, ícones
+  reais no launcher;
+- **próximo passo**: usuário validar a ControlsPage no runtime (Bluetooth é o
+  ponto mais sensível — primeiro uso do módulo `Quickshell.Bluetooth`).
 
 ## 4. Roadmap por fases
 

@@ -6,11 +6,113 @@
 
 ---
 
-## 0. ESTADO ATUAL AUTORITATIVO (2026-06-07 — arquitetura Sidebar + TopSheet implementada)
+## 0. ESTADO ATUAL AUTORITATIVO (atualizado 2026-06-09)
 
 > **Leia esta seção primeiro.** Ela é a fonte de verdade atual e **supersede** as
 > seções históricas abaixo onde houver conflito. As seções 1–14 continuam como
 > registro do caminho anterior, mas a shell ativa mudou de arquitetura nesta data.
+
+### 0.0 Sessão 2026-06-09 — abas acopladas + controles funcionais (SUPERSEDE os itens 1–15 abaixo onde conflitar)
+
+**A. Git / linha de trabalho**
+- Direto na `main`, sem branch, sem push. Working tree **limpa**; o usuário
+  commitou tudo desta sessão (HEAD `869154e feat: controles funcionais e painel
+  com altura ajustada ao conteúdo`).
+- A IA só commita com aprovação explícita; sugere mensagem em pt-BR.
+
+**B. POLÍTICA DE MUTAÇÃO ATUALIZADA (autorizada pelo usuário em 2026-06-09)**
+- Escritas no sistema agora são **permitidas SOMENTE via API typed do
+  Quickshell**, centralizadas nos singletons de `services/`:
+  - volume/mute → `Audio.qml` (Pipewire);
+  - Wi-Fi on/off + scan + conectar em rede **JÁ SALVA** → `Network.qml`
+    (Networking; nenhuma senha passa pela shell);
+  - Bluetooth on/off + conectar/desconectar **pareados** → `Bluez.qml`;
+  - perfil de energia → `Battery.cycleProfile()` (PowerProfiles);
+  - workspace → `Hyprland.activateWorkspace()`; mídia → `Media.qml`.
+- **`Process`/comando externo segue PROIBIDO** (por isso o slider de brilho
+  continua placeholder — monitor externo exigiria DDC/ddcutil).
+- Isso supersede o item 5 ("Segurança e limites") e o item 4 (placeholders) da
+  leva 2026-06-07 abaixo.
+
+**C. Geometria do TopSheet — descoberta CRÍTICA (não regredir)**
+- A janela do TopSheet **respeita a exclusiveZone da EdgeLeft (46px) e da
+  topbar**: o compositor já entrega a janela começando na borda direita da
+  barra. Logo **x=0 da janela É a borda da barra** e `interactiveLeft = 0`.
+- **Nunca** voltar a somar `Theme.barW` em coordenadas do TopSheet — isso
+  criava um "gap fantasma" de exatos 46px que nenhum ajuste fechava.
+- As coordenadas y da EdgeLeft e do TopSheet batem 1:1 (ambas deslocadas
+  igualmente pela zona da topbar).
+
+**D. Interação das abas (estado aprovado pelo usuário: "ficou muito bom")**
+- Todas as páginas são "abas" **coladas na barra** (`x=0`), cada uma nascendo
+  na linha do seu botão: `pageAnchorY()` mapeia a geometria real da coluna de
+  botões (`Theme.gap + i*42`; workspaces +12 após o divisor; Sistema/Perfil
+  ancorados pela **base** em `H-52`/`H-10`).
+- Movimento **só horizontal**: aba guardada atrás da barra (`hiddenX`) ou
+  encaixada (0); janela clipa o que está em x negativo → efeito "sai de dentro
+  da barra". Sem fade de opacidade.
+- Troca de página aberta: `displayedPage` ≠ `currentPage` + `pageSettled` +
+  `pageSwapTimer` — a aba atual **recolhe**, o conteúdo/y/width trocam
+  **escondidos**, a nova **surge** na linha do novo botão. Duração `tSlow`
+  (360ms) no slide; timer `tSlow+40`.
+- **Altura encaixa no conteúdo** (`sheetNeededHeight` = página + 105 de chrome
+  + margens; mín. 240, máx. `panelHeight`), com Behavior suave para listas que
+  expandem. `y`/`width` **não** têm Behavior (só mudam escondidos).
+- Cor do painel: `surfaceStrong` alpha 0.995 + `strokeStrong`. O usuário
+  **rejeitou** `Theme.bar` translúcido (janelas vazavam — "fantasma") e o
+  retângulo que aplainava os cantos esquerdos (costura visível por soma de
+  alpha). **Só cantos arredondados**, sem remendos.
+- Largura: busca 760; demais páginas 1180 (`panelWidth`).
+
+**E. SearchPage (launcher) — funcional e aprovada**
+- Sem header no modo busca; campo é o primeiro elemento, painel nasce na linha
+  da lupa. Foco automático, ↑/↓ navegam (hover move a mesma seleção), Enter
+  abre e **fecha o painel**, Esc limpa → fecha, estado vazio com dica.
+- Pill "Favoritos" removida do input (era o warning de anchors em Row —
+  corrigido; página não tem mais `Row`).
+
+**F. Dashboard refinado (aprovado)**
+- Linha 1: card hero escuro de data/hora (HOJE + hora `fsHero` + tile do dia)
+  + card de janela ativa (MarqueeText + chips de workspace/monitor/ocupação).
+- Linha 2: Rede + Energia (MetricCards) + faixa de mídia (2 unidades, marquee
+  contido, status "Tocando • player").
+- `MetricCard`: altura derivada do conteúdo + `width`/`elide`/`maximumLineCount`
+  nos textos (fix do texto vazando). Workspace/Sistema saíram do Home de
+  propósito — **não recolocar**.
+
+**G. ControlsPage funcional (implementada em 2026-06-09; runtime AINDA NÃO validado)**
+- Serviços novos: `services/Audio.qml` (Pipewire: volume/mute RW via
+  `defaultAudioSink` + `PwObjectTracker`) e `services/Bluez.qml` (Bluetooth:
+  adapter enabled RW, `pairedDevices`, `toggleDevice`). **Registrados no
+  `services/qmldir`** (Audio, Bluez).
+- `Network.qml` estendido: `wifiNetworks` (ordenadas: conectada > salvas >
+  sinal), `hasWifiDevice`, `setWifiEnabled`, `setScanning` (scan só com a
+  página aberta), `isSecured`, `canConnect`/`connectToNetwork` (só rede salva).
+- `QuickToggle`: `interactive` + sinais `toggled()` (switch) e `activated()`
+  (corpo) — corpo expande listas de redes/dispositivos, switch liga/desliga.
+- `ControlSlider`: `interactive` + `moved(real)` (arrasto/clique na trilha) e
+  `badgeClicked()` (mute no badge de %).
+- Brilho: placeholder honesto (ver item B). Bateria: tile informativo.
+- **Pendência nº 1 do próximo chat: o usuário validar os controles no runtime**
+  — em especial o Bluetooth (primeiro uso do módulo `Quickshell.Bluetooth` no
+  projeto; APIs conferidas nos qmltypes de Quickshell 0.3.0, mas não rodado).
+
+**H. Bug recorrente de glyphs (3ª ocorrência nesta sessão)**
+- Caracteres Nerd Font PUA **somem** quando escritos pelas ferramentas de
+  edição (viram `""`). Sempre: definir glyphs como propriedades nomeadas,
+  gravar os codepoints **via script Python** (`src.replace(...)` com `chr()`)
+  e **validar com `iconv -t UTF-32LE | xxd`**. Codepoints em uso: wifi F1EB,
+  bluetooth F293, bolt F0E7, battery F240, volume F028/F026, sun F185,
+  lock F023, check F00C, janela F2D0, música F001, lupa F002.
+
+**I. Próximos passos recomendados (ordem sugerida)**
+1. Usuário roda `qs -p ...` e valida ControlsPage (Wi-Fi, Bluetooth, volume,
+   perfil) — corrigir o que estranhar.
+2. Decidir brilho: DDC/ddcutil = `Process` → exige autorização explícita e
+   conversa sobre a exceção.
+3. CPU/MEM/TMP reais na SystemPage (`FileView /proc` — leitura, dentro da
+   política).
+4. SystemTray real e ícones reais no launcher (carryovers).
 
 **1. Linha oficial de trabalho**
 - Trabalho **direto na `main`**, **sem branches**.
@@ -889,40 +991,58 @@ qmllint modules/Launcher/Launcher.qml
 
 ---
 
-## 15. Resumo rápido para próximo chat (atualizado 2026-06-07 — pós-Fase 6)
+## 15. Resumo rápido para próximo chat (atualizado 2026-06-09 — abas acopladas + controles funcionais)
 
-> Esta é a seção de entrada rápida. Leia a Seção 0 para detalhes completos.
+> Esta é a seção de entrada rápida. Leia a **Seção 0.0** para detalhes completos.
 
-Projeto isolado em `~/Projetos/ui-shell-prototype/`, feito em **Quickshell/QML**,
-rodando por cima do HyDE/Waybar via `qs -p` **sem alterar nada do sistema**.
+Projeto isolado em `~/Projetos/ui-shell-prototype/`, feito em **Quickshell/QML**
+(Quickshell 0.3.0), rodando por cima do HyDE/Waybar via `qs -p` **sem alterar
+nada do sistema**. Visual P&B/grafite, tema claro, premium/arredondado.
 
-**Estado atual:**
-- `EdgeLeft` (sidebar): barra vertical P&B/grafite com relógio, Wi-Fi, perfil, workspaces reais por tela e tooltips mais curtos/resumidos.
-- `EdgeTop` (drawer topo): abas Dashboard/Media/Performance/Workspaces — Media real com marquee para títulos longos; aba Workspaces com cards resumidos do Hyprland.
-- `EdgeRight` (sliders): **aprovado e congelado** — não mexer.
-- `Launcher` (rodapé): abre por clique, busca apps reais, executa via `DesktopEntry.execute()`.
-- `Dashboard` (aba): hora/data/calendário/bateria/OS/WM/uptime reais.
-- `services/`: Clock, Battery, Media, Network, System e Hyprland — todos `pragma Singleton`, todos read-only.
-- `components/MarqueeText.qml`: novo componente reutilizável para overflow horizontal suave.
-- Tooltips: `clip: false` no `shellShape`, chip grafite, elide para labels longos, sem flicker.
-- **`ScreenFrame.qml`** existe mas está INATIVO (DEPRECATED) — não reativar.
-- `qmllint` limpo em `services/Hyprland.qml`, `modules/EdgeLeft/EdgeLeft.qml` e `modules/EdgeTop/EdgeTop.qml`.
+**Arquitetura ativa:** `shell.qml` monta só `EdgeLeft` (sidebar seletora) +
+`TopSheet` (abas) por tela. EdgeTop/EdgeRight/Launcher antigos são legado
+desmontado — não reativar.
 
-**O que ainda é fake:** CPU/GPU/mem/temp (Performance), SystemTray real, media card do Dashboard.
+**Estado atual (tudo commitado, working tree limpa, HEAD `869154e`):**
+- **Abas acopladas:** cada página nasce colada na sidebar, na linha do seu
+  botão; desliza de **dentro da barra** (horizontal, `tSlow`); troca de página
+  recolhe a aba atual, troca escondido e revela a nova. Altura encaixa no
+  conteúdo. Sistema/Perfil ancoram pela base.
+  ⚠️ `interactiveLeft = 0`: a janela do TopSheet já começa na borda da barra
+  (exclusiveZone) — **nunca** somar `Theme.barW` de novo.
+- **Busca:** launcher completo (foco automático, ↑/↓, Enter abre e fecha,
+  Esc limpa→fecha, estado vazio), sem header, alinhado à lupa, largura 760.
+- **Dashboard:** hero de data/hora + janela ativa com chips + Rede/Energia +
+  faixa de mídia com marquee. MetricCard com altura auto e elide.
+- **Controles FUNCIONAIS (novo, ainda não validado no runtime):** Wi-Fi
+  (toggle/scan/lista/conectar em rede salva), Bluetooth (toggle/pareados —
+  serviço novo `Bluez.qml`), volume real Pipewire (serviço novo `Audio.qml`),
+  perfil de energia alternável. Brilho segue placeholder (DDC = Process).
+- **Política de mutação:** escrita **só via API typed do Quickshell**, nos
+  serviços de `services/`. `Process`/comando externo **proibido**.
+- **Glyphs PUA:** somem no Write/Edit — gravar via script Python (`chr()`)
+  e validar com `iconv | xxd`. (3 ocorrências já.)
 
-**Próxima fase:** validar visualmente a Fase 6 e, depois de aprovação, planejar a Fase 7.
+**Pendência nº 1:** usuário validar a ControlsPage no runtime (em especial
+Bluetooth — primeiro uso do módulo `Quickshell.Bluetooth`).
+
+**Depois:** brilho (exige conversa sobre Process), CPU/MEM/TMP na SystemPage
+via `FileView /proc`, SystemTray, ícones reais no launcher.
 
 **Regras que nunca mudam:**
 - Somente dentro de `~/Projetos/ui-shell-prototype/`.
 - Não mexer em HyDE/Waybar/Hyprland/SDDM/boot/systemd/login/bateria/PAM.
-- spawn externo/comandos externos proibidos sem autorização. `FileView`+DBus read-only: ok.
+- `Process`/comando externo proibido sem autorização. Leitura via
+  `FileView`+DBus typed: ok. Escrita: só via API typed nos serviços.
 - Não dar push. Não criar branch. Não commitar sem aprovação.
 - `qs -p`: só o usuário roda (não a IA).
+- Não reativar ScreenFrame/EdgeTop/EdgeRight/Launcher legados.
 
 **Comandos de retomada:**
 ```sh
 cd ~/Projetos/ui-shell-prototype/
 git log --oneline -5
 git status
+qmllint modules/TopSheet/TopSheet.qml modules/TopSheet/pages/*.qml services/*.qml
 qs -p ~/Projetos/ui-shell-prototype/shell.qml  # usuário roda, não a IA
 ```
