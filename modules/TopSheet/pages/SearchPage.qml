@@ -56,7 +56,7 @@ Item {
     Column {
         id: content
         width: root.width
-        spacing: Theme.pad
+        spacing: Theme.gap
 
         // ---- campo de busca (sem pill dentro do input) ----
         Rectangle {
