@@ -21,10 +21,21 @@ Item {
     readonly property string fullDate: Clock.currentDay + " de " + Clock.monthName + " de " + Clock.currentYear
     readonly property string monthAbbrev: Clock.monthName.slice(0, 3).toUpperCase()
 
-    // linha de métricas com altura uniforme: a maior define a das demais
+    // glyphs Nerd Font (BMP) — escapes explícitos para não depender do
+    // encoding do arquivo
+    readonly property string glyphWindow: ""   // janela
+    readonly property string glyphWifi: ""     // wi-fi
+    readonly property string glyphBolt: ""     // energia
+    readonly property string glyphMusic: ""    // nota musical
+
+    // linha 2 com altura uniforme: o card mais alto define a dos demais
     readonly property real metricRowHeight: Math.max(
-        netCard.implicitHeight, powerCard.implicitHeight,
-        wsCard.implicitHeight, sysCard.implicitHeight)
+        netCard.implicitHeight, powerCard.implicitHeight, 132)
+
+    // grade de 4 unidades na linha 2 (Rede 1u + Energia 1u + Mídia 2u)
+    readonly property real unitWidth: root.wide
+        ? (root.width - Theme.gap * 3) / 4
+        : (root.width - Theme.gap) / 2
 
     Column {
         id: content
@@ -152,7 +163,7 @@ Item {
 
                             Text {
                                 anchors.centerIn: parent
-                                text: ""
+                                text: root.glyphWindow
                                 font.family: Theme.iconFont
                                 font.pixelSize: 16
                                 color: Theme.accent
@@ -218,18 +229,16 @@ Item {
             }
         }
 
-        // ---- linha 2: métricas rápidas ----
-        Grid {
+        // ---- linha 2: rede + energia + mídia integrada ----
+        Flow {
             width: parent.width
-            columns: root.wide ? 4 : 2
-            columnSpacing: Theme.gap
-            rowSpacing: Theme.gap
+            spacing: Theme.gap
 
             MetricCard {
                 id: netCard
-                width: (parent.width - Theme.gap * (parent.columns - 1)) / parent.columns
+                width: root.unitWidth
                 height: root.metricRowHeight
-                glyph: ""
+                glyph: root.glyphWifi
                 title: "Rede"
                 value: Network.statusText
                 subtitle: Network.available ? (Network.connected ? "Conectado" : "Sem conexão ativa") : "Backend indisponível"
@@ -237,9 +246,9 @@ Item {
 
             MetricCard {
                 id: powerCard
-                width: (parent.width - Theme.gap * (parent.columns - 1)) / parent.columns
+                width: root.unitWidth
                 height: root.metricRowHeight
-                glyph: ""
+                glyph: root.glyphBolt
                 title: "Energia"
                 value: Battery.available ? Battery.statusText : "Sem bateria"
                 subtitle: Battery.available
@@ -247,107 +256,77 @@ Item {
                     : "Desktop ou dispositivo não exposto"
             }
 
-            MetricCard {
-                id: wsCard
-                width: (parent.width - Theme.gap * (parent.columns - 1)) / parent.columns
+            Rectangle {
+                id: mediaCard
+                width: root.wide ? root.unitWidth * 2 + Theme.gap : parent.width
                 height: root.metricRowHeight
-                glyph: ""
-                title: "Workspace"
-                value: Hyprland.workspaceLabel(root.activeWs)
-                subtitle: Hyprland.workspaceWindowSummary(root.activeWs)
-            }
+                radius: Theme.radius
+                color: Theme.card
+                border.width: 1
+                border.color: Theme.stroke
+                antialiasing: true
+                clip: true
 
-            MetricCard {
-                id: sysCard
-                width: (parent.width - Theme.gap * (parent.columns - 1)) / parent.columns
-                height: root.metricRowHeight
-                glyph: ""
-                title: "Sistema"
-                value: System.osName || "Linux"
-                subtitle: (System.wm || "Sessão") + " • " + (System.uptimeText || "uptime indisponível")
-            }
-        }
+                Item {
+                    anchors.fill: parent
+                    anchors.margins: Theme.pad
 
-        // ---- linha 3: mídia resumida ----
-        Rectangle {
-            width: parent.width
-            height: 124
-            radius: Theme.radius
-            color: Theme.card
-            border.width: 1
-            border.color: Theme.stroke
-            antialiasing: true
-            clip: true
+                    Rectangle {
+                        id: mediaGlyph
+                        anchors.left: parent.left
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: 64
+                        height: 64
+                        radius: 32
+                        antialiasing: true
+                        color: Media.isPlaying ? Theme.accentActive : Theme.accentSoft
 
-            Item {
-                anchors.fill: parent
-                anchors.margins: Theme.pad
-
-                Rectangle {
-                    id: mediaGlyph
-                    anchors.left: parent.left
-                    anchors.verticalCenter: parent.verticalCenter
-                    width: 64
-                    height: 64
-                    radius: 32
-                    antialiasing: true
-                    color: Media.isPlaying ? Theme.accentActive : Theme.accentSoft
-
-                    Text {
-                        anchors.centerIn: parent
-                        text: ""
-                        font.family: Theme.iconFont
-                        font.pixelSize: 24
-                        color: Media.isPlaying ? Theme.textOnAccent : Theme.accentActive
-                    }
-                }
-
-                Column {
-                    anchors.left: mediaGlyph.right
-                    anchors.leftMargin: Theme.pad
-                    anchors.right: mediaStatus.left
-                    anchors.rightMargin: Theme.pad
-                    anchors.verticalCenter: parent.verticalCenter
-                    spacing: 4
-
-                    Text {
-                        text: "Mídia"
-                        font.pixelSize: Theme.fsBody
-                        color: Theme.textDim
+                        Text {
+                            anchors.centerIn: parent
+                            text: root.glyphMusic
+                            font.family: Theme.iconFont
+                            font.pixelSize: 24
+                            color: Media.isPlaying ? Theme.textOnAccent : Theme.accentActive
+                        }
                     }
 
-                    MarqueeText {
-                        text: Media.displayTitle
-                        maxWidth: parent.width
-                        pixelSize: Theme.fsTitleLg
-                        bold: true
-                        color: Theme.text
-                    }
+                    Column {
+                        anchors.left: mediaGlyph.right
+                        anchors.leftMargin: Theme.pad
+                        anchors.right: parent.right
+                        anchors.verticalCenter: parent.verticalCenter
+                        spacing: 4
 
-                    MarqueeText {
-                        text: Media.displaySubtitle
-                        maxWidth: parent.width
-                        pixelSize: Theme.fsBodyLg
-                        color: Theme.textDim
-                    }
-                }
+                        Text {
+                            text: "Mídia"
+                            font.pixelSize: Theme.fsBody
+                            color: Theme.textDim
+                        }
 
-                Pill {
-                    id: mediaStatus
-                    anchors.right: parent.right
-                    anchors.verticalCenter: parent.verticalCenter
-                    height: 28
-                    width: mediaStatusLabel.implicitWidth + 24
-                    color: Media.isPlaying ? Theme.accentActive : Theme.accentSoft
+                        MarqueeText {
+                            text: Media.displayTitle
+                            maxWidth: parent.width
+                            pixelSize: Theme.fsTitleLg
+                            bold: true
+                            color: Theme.text
+                        }
 
-                    Text {
-                        id: mediaStatusLabel
-                        anchors.centerIn: parent
-                        text: Media.available
-                            ? Media.statusText + " • " + Media.activePlayerName
-                            : "Sem player"
-                        font.pixelSize: Theme.fsCaption
-                        color: Media.isPlaying ? Theme.textOnAccent : Theme.textDim
+                        MarqueeText {
+                            text: Media.displaySubtitle
+                            maxWidth: parent.width
+                            pixelSize: Theme.fsBodyLg
+                            color: Theme.textDim
+                        }
+
+                        Text {
+                            width: parent.width
+                            text: Media.available
+                                ? Media.statusText + " • " + Media.activePlayerName
+                                : "Sem player ativo"
+                            font.pixelSize: Theme.fsCaption
+                            color: Theme.textFaint
+                            elide: Text.ElideRight
+                        }
                     }
                 }
             }
