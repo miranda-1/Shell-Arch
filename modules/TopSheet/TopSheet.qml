@@ -27,13 +27,45 @@ PanelWindow {
 
     readonly property real screenWidth: root.screen && root.screen.width ? root.screen.width : 1440
     readonly property real screenHeight: root.screen && root.screen.height ? root.screen.height : 900
-    readonly property real interactiveLeft: Theme.barW
+    // o compositor já desconta a zona exclusiva da EdgeLeft (e da topbar)
+    // desta janela: x=0 aqui É a borda direita da barra. Somar Theme.barW de
+    // novo criava um afastamento fantasma de 46px que nunca fechava.
+    readonly property real interactiveLeft: 0
     readonly property real availableWidth: Math.max(720, root.screenWidth - root.interactiveLeft - 48)
     readonly property real panelWidth: Math.min(root.availableWidth, 1180)
     readonly property real panelHeight: Math.min(Math.max(root.screenHeight * 0.57, 480), 720)
-    readonly property real topOffset: 18
-    // na busca o painel encosta na EdgeLeft, como extensão do botão de lupa
     readonly property bool searchDocked: root.currentPage === "search"
+    // painel mais estreito no modo busca: leitura de launcher, não de sheet
+    readonly property real searchPanelWidth: Math.min(root.availableWidth, 760)
+
+    // Sistema e Perfil vivem na coluna de baixo da EdgeLeft: o painel ancora
+    // embaixo e a animação de abertura sobe de baixo para cima.
+    readonly property bool bottomAnchored: root.currentPage === "system" || root.currentPage === "profile"
+
+    // topo do i-ésimo botão da coluna superior da EdgeLeft: topMargin (gap)
+    // + i × (botão 40 + spacing 2). Workspaces fica após o divisor (10 + 2×2).
+    function topButtonY(index) {
+        return Theme.gap + index * 42;
+    }
+
+    // y do painel aberto: cada página nasce na linha do botão que a abriu
+    function pageAnchorY() {
+        const maxTop = Math.max(12, root.height - root.panelHeight - 12);
+
+        switch (root.currentPage) {
+        case "search":     return Math.min(root.topButtonY(1), maxTop);
+        case "calendar":   return Math.min(root.topButtonY(2), maxTop);
+        case "controls":   return Math.min(root.topButtonY(3), maxTop);
+        case "media":      return Math.min(root.topButtonY(4), maxTop);
+        case "workspaces": return Math.min(root.topButtonY(5) + 12, maxTop);
+        // base alinhada à base do respectivo botão da coluna inferior:
+        // perfil termina em H-10; sistema logo acima, em H-52
+        case "system":     return Math.max(12, root.height - 52 - root.panelHeight);
+        case "profile":    return Math.max(12, root.height - 10 - root.panelHeight);
+        case "dashboard":
+        default:           return Math.min(root.topButtonY(0), maxTop);
+        }
+    }
     readonly property bool panelVisible: root.open || sheet.opacity > 0.01
     readonly property string pageGlyph: root.metaForPage(root.currentPage).glyph
     readonly property string pageTitle: root.metaForPage(root.currentPage).title
@@ -121,52 +153,23 @@ PanelWindow {
                 && mouse.y >= sheet.y
                 && mouse.y <= sheet.y + sheet.height;
 
-            const insideArm = searchArm.visible
-                && mouse.x >= searchArm.x
-                && mouse.x <= searchArm.x + searchArm.width
-                && mouse.y >= searchArm.y
-                && mouse.y <= searchArm.y + searchArm.height;
-
-            if (!insidePanel && !insideArm)
+            if (!insidePanel)
                 root.requestClose();
         }
     }
 
-    // braço conector: liga o botão de busca da EdgeLeft ao painel quando a
-    // página atual é a busca — desenhado antes do Card para terminar sob ele
-    Rectangle {
-        id: searchArm
-        // centro do botão de busca na EdgeLeft: topMargin (gap) + botão
-        // Dashboard (40) + spacing (2) + metade do próprio botão (20)
-        readonly property real anchorCenterY: Theme.gap + 40 + 2 + 20
-
-        x: root.interactiveLeft
-        y: anchorCenterY - height / 2
-        width: root.open && root.searchDocked
-            ? sheet.x - root.interactiveLeft + Theme.radiusLg
-            : 0
-        height: 36
-        radius: 18
-        antialiasing: true
-        color: Qt.rgba(Theme.surfaceStrong.r, Theme.surfaceStrong.g, Theme.surfaceStrong.b, 0.995)
-        border.width: 1
-        border.color: Theme.strokeStrong
-        opacity: root.open && root.searchDocked ? 1 : 0
-        visible: root.panelVisible && opacity > 0.01
-
-        Behavior on width { NumberAnimation { duration: Theme.tBase; easing.type: Easing.OutExpo } }
-        Behavior on opacity { NumberAnimation { duration: Theme.tFast } }
-    }
-
     Card {
         id: sheet
-        x: root.interactiveLeft + (root.searchDocked
-            ? 24
-            : Math.max(24, (root.width - root.interactiveLeft - root.panelWidth) / 2))
-        y: root.open ? root.topOffset : -root.panelHeight - 40
-        width: root.panelWidth
+        // todas as páginas nascem coladas na EdgeLeft (x=0 = borda da barra)
+        x: root.interactiveLeft
+        y: root.open
+            ? root.pageAnchorY()
+            : (root.bottomAnchored ? root.height + 40 : -root.panelHeight - 40)
+        width: root.searchDocked ? root.searchPanelWidth : root.panelWidth
         height: root.panelHeight
         radius: Theme.radiusLg
+        // quase opaco: sobre janelas (terminal/browser), translucidez alta
+        // vira fantasma — o encaixe na barra fica por conta do x=0
         color: Qt.rgba(Theme.surfaceStrong.r, Theme.surfaceStrong.g, Theme.surfaceStrong.b, 0.995)
         border.color: Theme.strokeStrong
         opacity: root.open ? 1 : 0
@@ -174,7 +177,13 @@ PanelWindow {
         visible: root.panelVisible
 
         Behavior on x { NumberAnimation { duration: Theme.tBase; easing.type: Easing.OutExpo } }
-        Behavior on y { NumberAnimation { duration: Theme.tBase; easing.type: Easing.OutExpo } }
+        // o y só anima com o painel visível: trocar de página fechado salta
+        // direto para o lado certo, e a abertura desliza do lado do botão
+        Behavior on y {
+            enabled: root.open || sheet.opacity > 0.01
+            NumberAnimation { duration: Theme.tBase; easing.type: Easing.OutExpo }
+        }
+        Behavior on width { NumberAnimation { duration: Theme.tBase; easing.type: Easing.OutExpo } }
         Behavior on opacity { NumberAnimation { duration: Theme.tFast } }
 
         Column {
@@ -182,7 +191,10 @@ PanelWindow {
             anchors.margins: Theme.pad + 2
             spacing: Theme.pad
 
+            // no modo busca o header sai: a página começa direto no campo,
+            // alinhado ao braço que nasce na lupa da EdgeLeft
             TopSheetHeader {
+                visible: !root.searchDocked
                 width: parent.width
                 glyph: root.pageGlyph
                 title: root.pageTitle
@@ -193,6 +205,7 @@ PanelWindow {
             }
 
             Rectangle {
+                visible: !root.searchDocked
                 width: parent.width
                 height: 1
                 color: Theme.stroke
@@ -201,7 +214,7 @@ PanelWindow {
             Flickable {
                 id: scroll
                 width: parent.width
-                height: parent.height - 105
+                height: root.searchDocked ? parent.height : parent.height - 105
                 clip: true
                 contentWidth: width
                 contentHeight: pageLoader.item ? pageLoader.item.implicitHeight : 0
