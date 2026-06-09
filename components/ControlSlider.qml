@@ -9,6 +9,11 @@ Rectangle {
     property real value: 0
     property string detail: ""
     property bool live: false
+    // habilita o arrasto/clique na trilha e o clique no badge de %
+    property bool interactive: false
+
+    signal moved(real newValue)
+    signal badgeClicked()
 
     radius: Theme.radius
     color: Theme.card
@@ -55,10 +60,19 @@ Rectangle {
                     font.pixelSize: 11
                     color: root.live ? Theme.accentActive : Theme.textDim
                 }
+
+                MouseArea {
+                    anchors.fill: parent
+                    anchors.margins: -4
+                    enabled: root.interactive
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: root.badgeClicked()
+                }
             }
         }
 
         Rectangle {
+            id: track
             width: parent.width
             height: 12
             radius: 6
@@ -74,14 +88,37 @@ Rectangle {
                 antialiasing: true
                 Behavior on width { NumberAnimation { duration: Theme.tFast; easing.type: Easing.OutCubic } }
             }
+
+            // clique/arrasto em qualquer ponto da trilha define o valor
+            MouseArea {
+                anchors.fill: parent
+                anchors.topMargin: -8
+                anchors.bottomMargin: -8
+                enabled: root.interactive
+                cursorShape: Qt.PointingHandCursor
+                preventStealing: true
+
+                function emitFromX(x) {
+                    root.moved(Math.max(0, Math.min(1, x / track.width)));
+                }
+
+                onPressed: (mouse) => emitFromX(mouse.x)
+                onPositionChanged: (mouse) => {
+                    if (pressed)
+                        emitFromX(mouse.x);
+                }
+            }
         }
 
         Text {
+            width: parent.width
             visible: root.detail.length > 0
             text: root.detail
             font.pixelSize: Theme.fsBody
             color: Theme.textDim
             wrapMode: Text.Wrap
+            maximumLineCount: 2
+            elide: Text.ElideRight
         }
     }
 }

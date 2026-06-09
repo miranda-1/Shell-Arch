@@ -69,7 +69,7 @@ PanelWindow {
 
     Timer {
         id: pageSwapTimer
-        interval: Theme.tBase + 30
+        interval: Theme.tSlow + 40
         onTriggered: {
             root.displayedPage = root.currentPage;
             root.pageSettled = true;
@@ -82,9 +82,15 @@ PanelWindow {
         return Theme.gap + index * 42;
     }
 
+    // altura do painel encaixada no conteúdo da página (sem barriga vazia),
+    // limitada à altura máxima de sheet. 105 = header + divisor + spacings.
+    readonly property real sheetNeededHeight: (pageLoader.item ? pageLoader.item.implicitHeight : 0)
+        + (root.searchDocked ? 0 : 105) + (Theme.pad + 2) * 2
+    readonly property real sheetHeight: Math.max(240, Math.min(root.panelHeight, root.sheetNeededHeight))
+
     // y do painel aberto: cada página nasce na linha do botão que a abriu
     function pageAnchorY() {
-        const maxTop = Math.max(12, root.height - root.panelHeight - 12);
+        const maxTop = Math.max(12, root.height - root.sheetHeight - 12);
 
         switch (root.displayedPage) {
         case "search":     return Math.min(root.topButtonY(1), maxTop);
@@ -94,8 +100,8 @@ PanelWindow {
         case "workspaces": return Math.min(root.topButtonY(5) + 12, maxTop);
         // base alinhada à base do respectivo botão da coluna inferior:
         // perfil termina em H-10; sistema logo acima, em H-52
-        case "system":     return Math.max(12, root.height - 52 - root.panelHeight);
-        case "profile":    return Math.max(12, root.height - 10 - root.panelHeight);
+        case "system":     return Math.max(12, root.height - 52 - root.sheetHeight);
+        case "profile":    return Math.max(12, root.height - 10 - root.sheetHeight);
         case "dashboard":
         default:           return Math.min(root.topButtonY(0), maxTop);
         }
@@ -201,7 +207,7 @@ PanelWindow {
         // y e width não animam: só mudam com a aba escondida atrás da barra
         y: root.pageAnchorY()
         width: root.searchDocked ? root.searchPanelWidth : root.panelWidth
-        height: root.panelHeight
+        height: root.sheetHeight
         radius: Theme.radiusLg
         // quase opaco: sobre janelas (terminal/browser), translucidez alta
         // vira fantasma — o encaixe na barra fica por conta do x=0
@@ -210,7 +216,9 @@ PanelWindow {
         clip: true
         visible: root.panelVisible
 
-        Behavior on x { NumberAnimation { duration: Theme.tBase; easing.type: Easing.OutExpo } }
+        Behavior on x { NumberAnimation { duration: Theme.tSlow; easing.type: Easing.OutExpo } }
+        // conteúdo dinâmico (listas expandindo) cresce o painel suavemente
+        Behavior on height { NumberAnimation { duration: Theme.tBase; easing.type: Easing.OutCubic } }
 
         Column {
             anchors.fill: parent

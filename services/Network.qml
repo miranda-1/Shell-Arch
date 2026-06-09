@@ -74,4 +74,66 @@ Singleton {
     // glyph Nerd Font (BMP) — exposto para uso futuro; a EdgeLeft mantém o
     // glyph atual para não alterar o visual nesta leva.
     readonly property string glyph: ""   // wifi
+
+    // ---- Fase de controles funcionais (autorizada): ações via API typed ----
+    // Mutações restritas ao que o Quickshell.Networking expõe de forma
+    // segura: ligar/desligar Wi-Fi, escanear e conectar em rede JÁ SALVA no
+    // NetworkManager. Nada de senha/secret passa pela shell.
+
+    readonly property bool hasWifiDevice: !!root._wifiDevice
+
+    // redes visíveis ordenadas: conectada > salvas > maior sinal
+    readonly property var wifiNetworks: {
+        const d = root._wifiDevice;
+        if (!d || !d.networks)
+            return [];
+
+        const nets = d.networks.values.slice();
+        nets.sort(function(a, b) {
+            const ca = a && a.connected ? 1 : 0;
+            const cb = b && b.connected ? 1 : 0;
+            if (ca !== cb)
+                return cb - ca;
+
+            const ka = a && a.known ? 1 : 0;
+            const kb = b && b.known ? 1 : 0;
+            if (ka !== kb)
+                return kb - ka;
+
+            return ((b && b.signalStrength) || 0) - ((a && a.signalStrength) || 0);
+        });
+        return nets;
+    }
+
+    function setWifiEnabled(on) {
+        if (!root.available)
+            return false;
+
+        Networking.wifiEnabled = !!on;
+        return true;
+    }
+
+    // liga o scan só enquanto a UI de redes está visível
+    function setScanning(on) {
+        const d = root._wifiDevice;
+        if (d)
+            d.scannerEnabled = !!on;
+    }
+
+    function isSecured(net) {
+        return !!net && net.security !== WifiSecurityType.None;
+    }
+
+    // conectar apenas em rede salva (o NetworkManager já tem as credenciais)
+    function canConnect(net) {
+        return !!(net && net.known && !net.connected && net.network);
+    }
+
+    function connectToNetwork(net) {
+        if (!root.canConnect(net))
+            return false;
+
+        net.network.connect();
+        return true;
+    }
 }

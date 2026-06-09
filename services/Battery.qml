@@ -53,14 +53,29 @@ Singleton {
         return root.percent + "%";
     }
 
-    // perfil de energia atual (LEITURA via power-profiles-daemon do UPower).
-    // Apenas reporta o perfil ativo — NÃO altera o perfil de energia.
+    // perfil de energia atual (leitura via power-profiles-daemon do UPower)
     readonly property string profileText: {
         switch (PowerProfiles.profile) {
         case PowerProfile.PowerSaver:   return "Economia";
         case PowerProfile.Balanced:     return "Equilibrado";
         case PowerProfile.Performance:  return "Performance";
         default:                        return "Equilibrado";
+        }
+    }
+
+    // Fase de controles funcionais (autorizada): alterna o perfil de energia
+    // pela API typed do PowerProfiles — única escrita deste serviço.
+    function cycleProfile() {
+        switch (PowerProfiles.profile) {
+        case PowerProfile.PowerSaver:
+            PowerProfiles.profile = PowerProfile.Balanced;
+            break;
+        case PowerProfile.Balanced:
+            PowerProfiles.profile = PowerProfile.Performance;
+            break;
+        default:
+            PowerProfiles.profile = PowerProfile.PowerSaver;
+            break;
         }
     }
 }
