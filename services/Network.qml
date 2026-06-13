@@ -124,16 +124,50 @@ Singleton {
         return !!net && net.security !== WifiSecurityType.None;
     }
 
-    // conectar apenas em rede salva (o NetworkManager já tem as credenciais)
+    // precisa de senha: rede protegida que ainda NÃO está salva no NetworkManager
+    function needsPassword(net) {
+        return !!net && !net.known && root.isSecured(net);
+    }
+
+    // conecta direto, sem pedir senha: rede já salva OU rede aberta.
+    // (o objeto `net` aqui É o WifiNetwork — herda de Network e tem connect()/
+    //  connectWithPsk(); não existe propriedade `net.network`.)
     function canConnect(net) {
-        return !!(net && net.known && !net.connected && net.network);
+        return !!(net && !net.connected && (net.known || !root.isSecured(net)));
     }
 
     function connectToNetwork(net) {
-        if (!root.canConnect(net))
+        if (!net || net.connected)
             return false;
 
-        net.network.connect();
+        net.connect();
+        return true;
+    }
+
+    // conecta numa rede protegida nova usando a senha digitada. A senha vai
+    // direto ao NetworkManager pela API typed — não é registrada nem guardada
+    // nesta shell.
+    function connectWithPassword(net, psk) {
+        if (!net || !psk || psk.length === 0)
+            return false;
+
+        net.connectWithPsk(psk);
+        return true;
+    }
+
+    function disconnectNetwork(net) {
+        if (!net || !net.connected)
+            return false;
+
+        net.disconnect();
+        return true;
+    }
+
+    function forgetNetwork(net) {
+        if (!net || !net.known)
+            return false;
+
+        net.forget();
         return true;
     }
 }

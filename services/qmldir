@@ -6,3 +6,4 @@ singleton System 1.0 System.qml
 singleton Hyprland 1.0 Hyprland.qml
 singleton Audio 1.0 Audio.qml
 singleton Bluez 1.0 Bluez.qml
+singleton Brightness 1.0 Brightness.qml

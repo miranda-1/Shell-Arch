@@ -12,6 +12,10 @@ Item {
     property bool wifiExpanded: false
     property bool btExpanded: false
 
+    // rede protegida aguardando senha (identificada pelo nome) + senha digitada
+    property string pwTargetName: ""
+    property string pwText: ""
+
     // glyphs Nerd Font (BMP) — escapes explícitos
     readonly property string glyphWifi: ""
     readonly property string glyphBluetooth: ""
@@ -25,7 +29,13 @@ Item {
 
     // escaneia redes só enquanto esta página existe
     Component.onCompleted: Network.setScanning(true)
-    Component.onDestruction: Network.setScanning(false)
+    Component.onDestruction: {
+        Network.setScanning(false);
+        Bluez.setDiscovering(false);
+    }
+
+    // procura dispositivos BT próximos só enquanto o painel Bluetooth está aberto
+    onBtExpandedChanged: Bluez.setDiscovering(root.btExpanded)
 
     function signalPercent(net) {
         const s = (net && net.signalStrength) || 0;
@@ -74,25 +84,147 @@ Item {
                 }
             }
 
-            QuickToggle {
+            // Perfil de energia — 3 estados (toque num segmento para escolher)
+            Rectangle {
                 width: (parent.width - Theme.gap * 3) / 4
-                glyph: root.glyphBolt
-                title: "Perfil"
-                subtitle: Battery.profileText + " • toque para alternar"
-                checked: Battery.profileText === "Performance"
-                live: true
-                interactive: true
-                onToggled: Battery.cycleProfile()
-                onActivated: Battery.cycleProfile()
+                implicitHeight: 92
+                radius: Theme.radius
+                color: Theme.card
+                border.width: 1
+                border.color: Theme.stroke
+                antialiasing: true
+
+                Column {
+                    anchors.fill: parent
+                    anchors.margins: Theme.pad
+                    spacing: 6
+
+                    Row {
+                        width: parent.width
+                        spacing: Theme.pad
+
+                        Rectangle {
+                            width: 40
+                            height: 40
+                            radius: 20
+                            antialiasing: true
+                            color: Theme.accentSoft
+
+                            Text {
+                                anchors.centerIn: parent
+                                text: root.glyphBolt
+                                font.family: Theme.iconFont
+                                font.pixelSize: 17
+                                color: Theme.accentActive
+                            }
+                        }
+
+                        Column {
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: parent.width - 52
+                            spacing: 3
+
+                            Text {
+                                text: "Perfil"
+                                font.pixelSize: Theme.fsLabel
+                                color: Theme.text
+                            }
+
+                            Text {
+                                width: parent.width
+                                text: Battery.profileText
+                                font.pixelSize: Theme.fsBody
+                                color: Theme.textDim
+                                elide: Text.ElideRight
+                            }
+                        }
+                    }
+
+                    // Economia · Equilibrado · Performance
+                    Row {
+                        width: parent.width
+                        spacing: 6
+
+                        Repeater {
+                            model: 3
+
+                            delegate: Rectangle {
+                                required property int index
+
+                                width: (parent.width - 12) / 3
+                                height: 12
+                                radius: 6
+                                antialiasing: true
+                                color: Battery.profileIndex === index ? Theme.accentActive : Theme.accentTrack
+
+                                Behavior on color { ColorAnimation { duration: Theme.tFast } }
+
+                                HoverHandler { cursorShape: Qt.PointingHandCursor }
+                                TapHandler { onTapped: Battery.setProfileIndex(index) }
+                            }
+                        }
+                    }
+                }
             }
 
-            QuickToggle {
+            // Bateria — apenas informativo (não é botão)
+            Rectangle {
                 width: (parent.width - Theme.gap * 3) / 4
-                glyph: root.glyphBattery
-                title: "Bateria"
-                subtitle: Battery.available ? Battery.statusText : "Sem bateria exposta"
-                checked: Battery.available && !Battery.onBattery
-                live: Battery.available
+                implicitHeight: 92
+                radius: Theme.radius
+                color: Theme.card
+                border.width: 1
+                border.color: Theme.stroke
+                antialiasing: true
+
+                Row {
+                    anchors.fill: parent
+                    anchors.margins: Theme.pad
+                    spacing: Theme.pad
+
+                    Rectangle {
+                        width: 40
+                        height: 40
+                        radius: 20
+                        antialiasing: true
+                        color: Battery.available ? Theme.accentSoft : Theme.accentTrack
+
+                        Text {
+                            anchors.centerIn: parent
+                            text: root.glyphBattery
+                            font.family: Theme.iconFont
+                            font.pixelSize: 17
+                            color: Battery.available ? Theme.accentActive : Theme.textDim
+                        }
+                    }
+
+                    Column {
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: parent.width - 52
+                        spacing: 3
+
+                        Text {
+                            width: parent.width
+                            text: Battery.available ? Battery.percentText : "Bateria"
+                            font.pixelSize: Theme.fsLabel
+                            color: Theme.text
+                            elide: Text.ElideRight
+                        }
+
+                        Text {
+                            width: parent.width
+                            text: Battery.available
+                                ? (Battery.charging ? "Carregando"
+                                    : (Battery.timeText.length > 0 ? Battery.timeText + " restante" : Battery.statusText))
+                                : "Sem bateria exposta"
+                            font.pixelSize: Theme.fsBody
+                            color: Theme.textDim
+                            wrapMode: Text.Wrap
+                            maximumLineCount: 2
+                            elide: Text.ElideRight
+                        }
+                    }
+                }
             }
         }
 
@@ -145,81 +277,187 @@ Item {
 
                         required property var modelData
 
-                        readonly property bool clickable: Network.canConnect(netRow.modelData)
+                        readonly property string netName: netRow.modelData.name || ""
+                        readonly property bool isConnected: netRow.modelData.connected
+                        readonly property bool wantsPw: Network.needsPassword(netRow.modelData)
+                        readonly property bool showPw: root.pwTargetName === netRow.netName
+                            && netRow.wantsPw && !netRow.isConnected
 
                         width: parent.width
-                        height: 52
+                        height: rowCol.height
                         radius: Theme.radiusSm
                         antialiasing: true
-                        color: netRow.modelData.connected ? Theme.accentSoft
-                             : netHover.hovered && netRow.clickable ? Theme.accentSoft
+                        color: netRow.isConnected ? Theme.accentSoft
+                             : netHover.hovered ? Theme.accentSoft
                              : Theme.accentTrack
                         border.width: 1
-                        border.color: netRow.modelData.connected ? Theme.strokeStrong : Theme.stroke
+                        border.color: netRow.isConnected ? Theme.strokeStrong : Theme.stroke
 
                         Behavior on color { ColorAnimation { duration: Theme.tFast } }
 
-                        HoverHandler {
-                            id: netHover
-                            cursorShape: netRow.clickable ? Qt.PointingHandCursor : Qt.ArrowCursor
-                        }
-
-                        TapHandler {
-                            acceptedButtons: Qt.LeftButton
-                            enabled: netRow.clickable
-                            onTapped: Network.connectToNetwork(netRow.modelData)
-                        }
-
-                        Text {
-                            id: netGlyph
-                            anchors.left: parent.left
-                            anchors.leftMargin: Theme.pad
-                            anchors.verticalCenter: parent.verticalCenter
-                            text: root.glyphWifi
-                            font.family: Theme.iconFont
-                            font.pixelSize: 15
-                            color: Theme.accent
-                            opacity: 0.35 + 0.65 * Math.min(1, root.signalPercent(netRow.modelData) / 100)
-                        }
-
-                        Text {
-                            id: netBadge
-                            anchors.right: parent.right
-                            anchors.rightMargin: Theme.pad
-                            anchors.verticalCenter: parent.verticalCenter
-                            text: netRow.modelData.connected
-                                ? root.glyphCheck + "  conectada"
-                                : root.signalPercent(netRow.modelData) + "%"
-                                    + (Network.isSecured(netRow.modelData) ? "  " + root.glyphLock : "")
-                            font.family: Theme.iconFont
-                            font.pixelSize: Theme.fsCaption
-                            color: netRow.modelData.connected ? Theme.accentActive : Theme.textDim
-                        }
-
                         Column {
-                            anchors.left: netGlyph.right
-                            anchors.leftMargin: Theme.pad
-                            anchors.right: netBadge.left
-                            anchors.rightMargin: Theme.pad
-                            anchors.verticalCenter: parent.verticalCenter
-                            spacing: 2
+                            id: rowCol
+                            width: parent.width
 
-                            Text {
+                            // linha principal (clicável)
+                            Item {
                                 width: parent.width
-                                text: netRow.modelData.name || "Rede oculta"
-                                font.pixelSize: Theme.fsBodyLg
-                                color: Theme.text
-                                elide: Text.ElideRight
+                                height: 52
+
+                                HoverHandler {
+                                    id: netHover
+                                    cursorShape: Qt.PointingHandCursor
+                                }
+
+                                TapHandler {
+                                    acceptedButtons: Qt.LeftButton
+                                    onTapped: {
+                                        if (netRow.isConnected) {
+                                            Network.disconnectNetwork(netRow.modelData);
+                                        } else if (netRow.wantsPw) {
+                                            root.pwTargetName = (root.pwTargetName === netRow.netName) ? "" : netRow.netName;
+                                            root.pwText = "";
+                                        } else {
+                                            Network.connectToNetwork(netRow.modelData);
+                                        }
+                                    }
+                                }
+
+                                Text {
+                                    id: netGlyph
+                                    anchors.left: parent.left
+                                    anchors.leftMargin: Theme.pad
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    text: root.glyphWifi
+                                    font.family: Theme.iconFont
+                                    font.pixelSize: 15
+                                    color: Theme.accent
+                                    opacity: 0.35 + 0.65 * Math.min(1, root.signalPercent(netRow.modelData) / 100)
+                                }
+
+                                Text {
+                                    id: netBadge
+                                    anchors.right: parent.right
+                                    anchors.rightMargin: Theme.pad
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    text: netRow.isConnected
+                                        ? root.glyphCheck + "  conectada"
+                                        : root.signalPercent(netRow.modelData) + "%"
+                                            + (Network.isSecured(netRow.modelData) ? "  " + root.glyphLock : "")
+                                    font.family: Theme.iconFont
+                                    font.pixelSize: Theme.fsCaption
+                                    color: netRow.isConnected ? Theme.accentActive : Theme.textDim
+                                }
+
+                                Column {
+                                    anchors.left: netGlyph.right
+                                    anchors.leftMargin: Theme.pad
+                                    anchors.right: netBadge.left
+                                    anchors.rightMargin: Theme.pad
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    spacing: 2
+
+                                    Text {
+                                        width: parent.width
+                                        text: netRow.netName || "Rede oculta"
+                                        font.pixelSize: Theme.fsBodyLg
+                                        color: Theme.text
+                                        elide: Text.ElideRight
+                                    }
+
+                                    Text {
+                                        width: parent.width
+                                        text: netRow.isConnected ? "Conectada — toque para desconectar"
+                                            : netRow.modelData.known ? "Salva — toque para conectar"
+                                            : netRow.wantsPw ? (netRow.showPw ? "Digite a senha abaixo" : "Protegida — toque para inserir a senha")
+                                            : "Aberta — toque para conectar"
+                                        font.pixelSize: Theme.fsCaption
+                                        color: Theme.textDim
+                                        elide: Text.ElideRight
+                                    }
+                                }
                             }
 
-                            Text {
+                            // campo de senha (só para rede protegida ainda não salva)
+                            Item {
                                 width: parent.width
-                                text: netRow.modelData.connected ? "Conectada"
-                                    : netRow.modelData.known ? "Salva — toque para conectar"
-                                    : "Desconhecida (conecte pelo NetworkManager)"
-                                font.pixelSize: Theme.fsCaption
-                                color: Theme.textDim
-                                elide: Text.ElideRight
+                                height: netRow.showPw ? 44 : 0
+                                visible: netRow.showPw
+                                clip: true
+
+                                Rectangle {
+                                    id: pwBox
+                                    anchors.left: parent.left
+                                    anchors.leftMargin: Theme.pad
+                                    anchors.right: connectBtn.left
+                                    anchors.rightMargin: Theme.gap
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    height: 32
+                                    radius: Theme.radiusSm
+                                    color: Theme.card
+                                    border.width: 1
+                                    border.color: Theme.stroke
+
+                                    TextInput {
+                                        id: pwInput
+                                        anchors.fill: parent
+                                        anchors.leftMargin: 10
+                                        anchors.rightMargin: 10
+                                        verticalAlignment: TextInput.AlignVCenter
+                                        echoMode: TextInput.Password
+                                        font.pixelSize: Theme.fsBody
+                                        color: Theme.text
+                                        clip: true
+                                        focus: netRow.showPw
+                                        text: root.pwText
+                                        onTextChanged: root.pwText = text
+                                        onAccepted: {
+                                            if (Network.connectWithPassword(netRow.modelData, root.pwText)) {
+                                                root.pwTargetName = "";
+                                                root.pwText = "";
+                                            }
+                                        }
+
+                                        Text {
+                                            anchors.fill: parent
+                                            verticalAlignment: Text.AlignVCenter
+                                            visible: pwInput.text.length === 0
+                                            text: "Senha da rede"
+                                            font.pixelSize: Theme.fsBody
+                                            color: Theme.textFaint
+                                        }
+                                    }
+                                }
+
+                                Rectangle {
+                                    id: connectBtn
+                                    anchors.right: parent.right
+                                    anchors.rightMargin: Theme.pad
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    width: 96
+                                    height: 32
+                                    radius: Theme.radiusSm
+                                    color: connectHover.hovered ? Theme.accentActive : Theme.accent
+
+                                    Behavior on color { ColorAnimation { duration: Theme.tFast } }
+
+                                    HoverHandler { id: connectHover; cursorShape: Qt.PointingHandCursor }
+                                    TapHandler {
+                                        onTapped: {
+                                            if (Network.connectWithPassword(netRow.modelData, root.pwText)) {
+                                                root.pwTargetName = "";
+                                                root.pwText = "";
+                                            }
+                                        }
+                                    }
+
+                                    Text {
+                                        anchors.centerIn: parent
+                                        text: "Conectar"
+                                        font.pixelSize: Theme.fsBody
+                                        color: Theme.textOnAccent
+                                    }
+                                }
                             }
                         }
                     }
@@ -367,9 +605,120 @@ Item {
                     width: parent.width
                     text: !Bluez.available ? "Sem adaptador Bluetooth nesta máquina."
                         : !Bluez.enabled ? "Bluetooth desligado — use o switch acima."
-                        : "Nenhum dispositivo pareado. Pareie pelo gerenciador do sistema."
+                        : "Nenhum dispositivo pareado ainda. Use a lista abaixo para parear."
                     font.pixelSize: Theme.fsBodyLg
                     color: Theme.textDim
+                    wrapMode: Text.Wrap
+                }
+
+                // ---- dispositivos próximos para parear ----
+                Item {
+                    visible: Bluez.enabled
+                    width: parent.width
+                    height: discTitle.implicitHeight
+
+                    Text {
+                        id: discTitle
+                        anchors.left: parent.left
+                        text: "Disponíveis para parear"
+                        font.pixelSize: Theme.fsLabel
+                        color: Theme.textDim
+                    }
+
+                    Text {
+                        anchors.right: parent.right
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: Bluez.discovering ? "procurando…" : ""
+                        font.pixelSize: Theme.fsCaption
+                        color: Theme.textFaint
+                    }
+                }
+
+                Repeater {
+                    model: Bluez.enabled ? Bluez.discoveredDevices.slice(0, 8) : []
+
+                    delegate: Rectangle {
+                        id: discRow
+
+                        required property var modelData
+
+                        width: parent.width
+                        height: 52
+                        radius: Theme.radiusSm
+                        antialiasing: true
+                        color: discHover.hovered ? Theme.accentSoft : Theme.accentTrack
+                        border.width: 1
+                        border.color: Theme.stroke
+
+                        Behavior on color { ColorAnimation { duration: Theme.tFast } }
+
+                        HoverHandler {
+                            id: discHover
+                            cursorShape: Qt.PointingHandCursor
+                        }
+
+                        TapHandler {
+                            acceptedButtons: Qt.LeftButton
+                            enabled: !discRow.modelData.pairing
+                            onTapped: Bluez.pairDevice(discRow.modelData)
+                        }
+
+                        Text {
+                            id: discGlyph
+                            anchors.left: parent.left
+                            anchors.leftMargin: Theme.pad
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: root.glyphBluetooth
+                            font.family: Theme.iconFont
+                            font.pixelSize: 15
+                            color: Theme.textDim
+                        }
+
+                        Text {
+                            id: discBadge
+                            anchors.right: parent.right
+                            anchors.rightMargin: Theme.pad
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: discRow.modelData.pairing ? "pareando…" : "parear"
+                            font.pixelSize: Theme.fsCaption
+                            color: discRow.modelData.pairing ? Theme.accentActive : Theme.textDim
+                        }
+
+                        Column {
+                            anchors.left: discGlyph.right
+                            anchors.leftMargin: Theme.pad
+                            anchors.right: discBadge.left
+                            anchors.rightMargin: Theme.pad
+                            anchors.verticalCenter: parent.verticalCenter
+                            spacing: 2
+
+                            Text {
+                                width: parent.width
+                                text: discRow.modelData.name || discRow.modelData.deviceName
+                                    || discRow.modelData.address || "Dispositivo"
+                                font.pixelSize: Theme.fsBodyLg
+                                color: Theme.text
+                                elide: Text.ElideRight
+                            }
+
+                            Text {
+                                width: parent.width
+                                text: discRow.modelData.pairing ? "Pareando…" : "Toque para parear"
+                                font.pixelSize: Theme.fsCaption
+                                color: Theme.textDim
+                                elide: Text.ElideRight
+                            }
+                        }
+                    }
+                }
+
+                Text {
+                    visible: Bluez.enabled && Bluez.discoveredDevices.length === 0
+                    width: parent.width
+                    text: Bluez.discovering ? "Procurando dispositivos próximos…"
+                        : "Deixe o aparelho em modo de pareamento e aguarde."
+                    font.pixelSize: Theme.fsBody
+                    color: Theme.textFaint
                     wrapMode: Text.Wrap
                 }
             }
@@ -398,9 +747,13 @@ Item {
                 width: (parent.width - Theme.gap) / 2
                 glyph: root.glyphSun
                 label: "Brilho"
-                value: 0.74
-                live: false
-                detail: "Sem backend seguro para brilho (monitor externo exige DDC). Mantido como placeholder."
+                value: Brightness.available ? Brightness.value : 0.74
+                live: Brightness.available
+                interactive: Brightness.available
+                detail: Brightness.available
+                    ? "Tela interna do notebook."
+                    : "Sem backlight interno detectado nesta sessão."
+                onMoved: (newValue) => Brightness.setPercent(newValue)
             }
         }
     }

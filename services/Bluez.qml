@@ -74,4 +74,52 @@ Singleton {
             device.connect();
         return true;
     }
+
+    // ---- Descoberta e pareamento (autorizado pelo usuário em 2026-06-13) ----
+    // Liga o scan de dispositivos próximos só enquanto o painel BT está aberto.
+
+    readonly property bool discovering: root.available && root.adapter.discovering
+
+    function setDiscovering(on) {
+        if (!root.adapter)
+            return false;
+
+        root.adapter.discovering = !!on;
+        return true;
+    }
+
+    // dispositivos próximos ainda NÃO pareados (candidatos a parear)
+    readonly property var discoveredDevices: {
+        if (!root.adapter || !root.adapter.devices)
+            return [];
+
+        const list = root.adapter.devices.values.slice().filter(function(d) {
+            return d && !(d.paired || d.bonded);
+        });
+
+        list.sort(function(a, b) {
+            return (a.name || a.deviceName || "").localeCompare(b.name || b.deviceName || "");
+        });
+        return list;
+    }
+
+    // pareia um dispositivo novo e o marca como confiável para reconectar sozinho.
+    // O pareamento é assíncrono; quando concluir, o device migra para a lista de
+    // pareados. PINs/confirmações simples ("just works") são tratados pelo BlueZ.
+    function pairDevice(device) {
+        if (!device || device.paired || device.bonded)
+            return false;
+
+        device.trusted = true;
+        device.pair();
+        return true;
+    }
+
+    function forgetDevice(device) {
+        if (!device)
+            return false;
+
+        device.forget();
+        return true;
+    }
 }
