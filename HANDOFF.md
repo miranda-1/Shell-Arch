@@ -36,12 +36,12 @@ coisa do próximo passo é a **Etapa V** — o usuário roda `qs -p` e validamos
 ao vivo, em especial a **ControlsPage** (Wi-Fi/Bluetooth/volume/perfil). Bluetooth
 é o ponto mais sensível (primeiro uso real de `Quickshell.Bluetooth`).
 
-**Ordem imediata:** Etapa V (validar ao vivo) → Etapa T (SystemTray) → Etapas M+B
-(métricas reais + brilho interno) → Etapa P (soak/performance) → Etapa Deploy
+**Ordem imediata (atualizada 2026-06-13, fim da sessão 2):** Etapas V (validação),
+B (brilho), M (stats) **CONCLUÍDAS**, mais extras (atalhos/aparência/energia).
+**Próximo: Etapa T (SystemTray real)** → Etapa P (soak/performance) → Etapa Deploy
 (substituir Waybar). Detalhes e critérios: `ROADMAP.md` seção 4.
 
-**Correções da ControlsPage feitas nesta sessão (a partir do feedback do usuário —
-qmllint exit 0; AINDA não rodado ao vivo):**
+**Correções da ControlsPage (validadas ao vivo pelo usuário em 2026-06-13):**
 - **Wi-Fi clicável (bug de raiz corrigido):** `Network.qml` usava `net.network`
   (propriedade inexistente) em `canConnect`/`connectToNetwork`, então `canConnect`
   era **sempre false** → nada clicava. Verdade da API (qmltypes): `WifiNetwork`
@@ -65,6 +65,51 @@ qmllint exit 0; AINDA não rodado ao vivo):**
   shell eval, escopado ao backlight interno. Monitor externo (ddcutil/DDC)
   **continua fora** por decisão. ⚠️ Isto abre a 1ª exceção ao "sem Process" — se a
   validação reprovar, reverter é trivial (remover o serviço + religar placeholder).
+  Fix de runtime: slider travava em 100% porque sysfs **não dispara inotify** →
+  `displayValue` ao vivo + Timer 1,5s reconciliando.
+
+**Mídia (validada e refinada em 2026-06-13):**
+- **Abrir Spotify:** `Media.raiseByHint("spotify")` (MPRIS `raise()` traz a janela
+  à frente quando já está rodando) com fallback de `DesktopEntry.execute()`. O
+  desktop entry é `spotify-launcher`; relançar com o app aberto não focava, por isso
+  o raise.
+- **Tempo:** `_fmt` agora faz `h:mm:ss` (antes só `m:ss` → "205:36"); linha de
+  posição/duração ancorada (não sobrepõe).
+- **Ícones de música giram tocando:** `ContextButton.spinning` (sidebar),
+  `RotationAnimator` na nota da MediaPage e do Dashboard (`running: Media.isPlaying`).
+- Cards Fonte/Players/Fallback **removidos** (a pedido) — sobrou player + Spotify.
+
+**Abas/serviços novos (2026-06-13, todos qmllint exit 0):**
+- **`stats`** — `services/Stats.qml` (read-only): CPU (delta `/proc/stat`), RAM
+  (`/proc/meminfo`), temp (`/sys/class/thermal/thermal_zone11` = x86_pkg_temp),
+  Timer 2s. Ícones CPU/MEM/TEMP **acima do relógio** na EdgeLeft abrem a página.
+- **`keybinds`** — `services/Keybinds.qml` (read-only, lê
+  `~/.config/hypr/keybindings.conf`): faz parse de `bind(d)=`, **traduz pt-BR**
+  (dicionário ~75 termos + regex de "área N") e **agrupa por 8 tópicos**.
+  ⚠️ Categorizar **só pela descrição** (a ação tem `$KILLACTIVE` que casava "kill").
+  KeybindsPage renderiza seções; validado com Node sobre os 116 binds reais.
+- **`appearance`** — `services/Appearance.qml` (Process autorizado): `hyde-shell
+  theme.switch -s "<nome>"` (7 temas) e `hyde-shell wallpaper -n/-p/-r/-S`.
+  **Mexe no HyDE real** (decisão do usuário).
+- **`power`** — `services/Power.qml` (Process autorizado): lock(`loginctl`),
+  logout(`hyde-shell logout`), suspend/reboot/poweroff(`systemctl`), **Windows**
+  (`systemctl reboot --boot-loader-entry=windows.conf`). PowerPage exige **2º toque**
+  para confirmar as ações destrutivas.
+
+**EdgeLeft reorganizada (2026-06-13):** removidos os botões inferiores **Sistema** e
+**Perfil**; no lugar do Perfil entrou **Power**; topo ganhou **Atalhos** e
+**Aparência** (após Mídia); o botão central (janela→`system`) foi mantido; ícones de
+stats acima do relógio. Ordem do topo agora: Dashboard(0) Search(1) Calendar(2)
+Controls(3) Media(4) Keybinds(5) Appearance(6) [divisor] Workspaces(7) — o
+`pageAnchorY` do TopSheet foi atualizado para esses índices.
+
+**TopSheet (2026-06-13):** larguras por página via `pageWidthFor()` (≈800 nas
+grandes — era 1180; 460 em stats/power; 560 busca; 640 keybinds/appearance/calendar);
+**scrollbar** vertical arrastável (`import QtQuick.Controls`); `bottomInset` de respiro.
+
+**Glyphs (regra reforçada):** PUA some no Write/Edit → todos os novos foram inseridos
+por **Python** com codepoints **verificados na fonte via fonttools (venv)** antes de
+usar. Lista no `ROADMAP.md` seção 8.
 
 ---
 
