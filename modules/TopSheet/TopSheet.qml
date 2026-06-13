@@ -84,8 +84,10 @@ PanelWindow {
 
     // altura do painel encaixada no conteúdo da página (sem barriga vazia),
     // limitada à altura máxima de sheet. 105 = header + divisor + spacings.
+    // respiro extra no fim de cada aba para o último elemento não colar na borda
+    readonly property real bottomInset: Theme.pad + 8
     readonly property real sheetNeededHeight: (pageLoader.item ? pageLoader.item.implicitHeight : 0)
-        + (root.searchDocked ? 0 : 105) + (Theme.pad + 2) * 2
+        + (root.searchDocked ? 0 : 105) + (Theme.pad + 2) * 2 + root.bottomInset
     readonly property real sheetHeight: Math.max(240, Math.min(root.panelHeight, root.sheetNeededHeight))
 
     // y do painel aberto: cada página nasce na linha do botão que a abriu
@@ -97,11 +99,15 @@ PanelWindow {
         case "calendar":   return Math.min(root.topButtonY(2), maxTop);
         case "controls":   return Math.min(root.topButtonY(3), maxTop);
         case "media":      return Math.min(root.topButtonY(4), maxTop);
-        case "workspaces": return Math.min(root.topButtonY(5) + 12, maxTop);
+        case "keybinds":   return Math.min(root.topButtonY(5), maxTop);
+        case "appearance": return Math.min(root.topButtonY(6), maxTop);
+        case "workspaces": return Math.min(root.topButtonY(7) + 12, maxTop);
         // base alinhada à base do respectivo botão da coluna inferior:
         // perfil termina em H-10; sistema logo acima, em H-52
         case "system":     return Math.max(12, root.height - 52 - root.sheetHeight);
         case "profile":    return Math.max(12, root.height - 10 - root.sheetHeight);
+        case "power":      return Math.max(12, root.height - 10 - root.sheetHeight);
+        case "stats":      return Math.max(12, root.height - 84 - root.sheetHeight);
         case "dashboard":
         default:           return Math.min(root.topButtonY(0), maxTop);
         }
@@ -128,6 +134,14 @@ PanelWindow {
             return { glyph: "", title: "Sistema", subtitle: "Sessão, uptime, bateria e leituras do ambiente atual sem polling externo." };
         case "profile":
             return { glyph: "", title: "Perfil e Energia", subtitle: "Identidade da sessão e ações futuras expostas apenas como placeholders." };
+        case "keybinds":
+            return { glyph: "", title: "Atalhos do teclado", subtitle: "Lista os atalhos do Hyprland lidos do seu keybindings.conf (somente leitura)." };
+        case "appearance":
+            return { glyph: "󰌹", title: "Aparência", subtitle: "Troque o tema e a imagem de fundo do HyDE direto pela shell." };
+        case "power":
+            return { glyph: "", title: "Energia e sessão", subtitle: "Bloquear, suspender, reiniciar, desligar ou iniciar no Windows — com confirmação." };
+        case "stats":
+            return { glyph: "", title: "Sistema ao vivo", subtitle: "CPU, memória e temperatura em tempo real." };
         case "dashboard":
         default:
             return { glyph: "", title: "Dashboard", subtitle: "Resumo vivo da shell com janela ativa, rede, bateria, mídia e contexto da tela." };
@@ -159,6 +173,11 @@ PanelWindow {
             break;
         case "search":
             pills.push({ glyph: "", text: "Launcher embutido", active: true });
+            break;
+        case "keybinds":
+        case "appearance":
+        case "power":
+        case "stats":
             break;
         case "system":
         case "profile":
@@ -251,7 +270,7 @@ PanelWindow {
                 height: root.searchDocked ? parent.height : parent.height - 105
                 clip: true
                 contentWidth: width
-                contentHeight: pageLoader.item ? pageLoader.item.implicitHeight : 0
+                contentHeight: (pageLoader.item ? pageLoader.item.implicitHeight : 0) + root.bottomInset
                 boundsBehavior: Flickable.StopAtBounds
 
                 Loader {
@@ -264,6 +283,10 @@ PanelWindow {
                         : root.displayedPage === "workspaces" ? workspacesPage
                         : root.displayedPage === "system" ? systemPage
                         : root.displayedPage === "profile" ? profilePage
+                        : root.displayedPage === "keybinds" ? keybindsPage
+                        : root.displayedPage === "appearance" ? appearancePage
+                        : root.displayedPage === "power" ? powerPage
+                        : root.displayedPage === "stats" ? statsPage
                         : dashboardPage
                 }
             }
@@ -329,6 +352,34 @@ PanelWindow {
         ProfilePage {
             width: pageLoader.width
             screenRef: root.screen
+        }
+    }
+
+    Component {
+        id: keybindsPage
+        KeybindsPage {
+            width: pageLoader.width
+        }
+    }
+
+    Component {
+        id: appearancePage
+        AppearancePage {
+            width: pageLoader.width
+        }
+    }
+
+    Component {
+        id: powerPage
+        PowerPage {
+            width: pageLoader.width
+        }
+    }
+
+    Component {
+        id: statsPage
+        StatsPage {
+            width: pageLoader.width
         }
     }
 }

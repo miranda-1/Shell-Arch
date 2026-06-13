@@ -12,8 +12,12 @@ Item {
     // glyph Nerd Font do Spotify (U+F04C7) — preenchido via script (PUA some no editor)
     property string glyphSpotify: "󰓇"
 
-    // abre o app do Spotify pela DesktopEntry (execução segura, sem shell eval)
+    // abre/foca o Spotify. Se já está rodando (MPRIS), traz a janela à frente;
+    // senão, lança pelo DesktopEntry (execução segura, sem shell eval).
     function openSpotify() {
+        if (Media.raiseByHint("spotify"))
+            return true;
+
         const apps = DesktopEntries.applications.values;
         for (let i = 0; i < apps.length; i++) {
             const e = apps[i];
@@ -59,6 +63,14 @@ Item {
                         font.family: Theme.iconFont
                         font.pixelSize: 54
                         color: Theme.accentActive
+
+                        RotationAnimator on rotation {
+                            running: Media.isPlaying
+                            loops: Animation.Infinite
+                            from: 0
+                            to: 360
+                            duration: 3600
+                        }
                     }
                 }
 
@@ -281,33 +293,5 @@ Item {
             }
         }
 
-        Row {
-            width: parent.width
-            spacing: Theme.gap
-
-            MetricCard {
-                width: (parent.width - Theme.gap * 2) / 3
-                glyph: "󰓇"
-                title: "Fonte"
-                value: Media.available ? Media.activePlayerName : "Nenhuma"
-                subtitle: Media.available ? Media.playbackStatus : "Sem sessão MPRIS elegível"
-            }
-
-            MetricCard {
-                width: (parent.width - Theme.gap * 2) / 3
-                glyph: ""
-                title: "Players"
-                value: Media.detectedPlayerCount + ""
-                subtitle: Media.playerCount + " com estado ativo ou pausado"
-            }
-
-            MetricCard {
-                width: (parent.width - Theme.gap * 2) / 3
-                glyph: ""
-                title: "Fallback"
-                value: Media.available ? "Pronto" : "Aguardando"
-                subtitle: "A UI não quebra quando o player omite título ou artista."
-            }
-        }
     }
 }

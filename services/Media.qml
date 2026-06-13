@@ -130,6 +130,31 @@ Singleton {
         return true;
     }
 
+    // traz a janela do player que casa com `hint` para frente (MPRIS Raise).
+    // Usado pelo atalho "Abrir Spotify": se já está tocando, foca a janela
+    // existente em vez de relançar o app.
+    function raiseByHint(hint) {
+        const needle = (hint || "").toLowerCase();
+        if (!needle)
+            return false;
+
+        for (let i = 0; i < root.players.length; i++) {
+            const p = root.players[i];
+            if (!p || !p.canRaise)
+                continue;
+
+            const id = (root._safeString(p.identity, "") + " "
+                + root._safeString(p.desktopEntry, "") + " "
+                + root._safeString(p.dbusName, "")).toLowerCase();
+
+            if (id.indexOf(needle) >= 0) {
+                p.raise();
+                return true;
+            }
+        }
+        return false;
+    }
+
     function previous() {
         if (!root.available || !root.player || !root.player.canGoPrevious)
             return false;
