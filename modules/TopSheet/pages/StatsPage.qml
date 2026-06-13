@@ -12,6 +12,7 @@ Item {
     property string glyphCpu: ""
     property string glyphMem: "󰍛"
     property string glyphTemp: ""
+    property string glyphGpu: ""
 
     Column {
         id: content
@@ -22,7 +23,8 @@ Item {
             model: [
                 { glyph: root.glyphCpu,  label: "CPU",         value: Stats.cpuPercent,          text: Stats.cpuText },
                 { glyph: root.glyphMem,  label: "Memória",     value: Stats.memPercent,          text: Stats.memText },
-                { glyph: root.glyphTemp, label: "Temperatura", value: Math.min(100, Stats.tempC), text: Stats.tempText }
+                { glyph: root.glyphTemp, label: "Temperatura", value: Math.min(100, Stats.tempC), text: Stats.tempText },
+                { glyph: root.glyphGpu,  label: "GPU",         value: Math.min(100, Stats.gpuTempC), text: Stats.gpuText }
             ]
 
             delegate: Rectangle {

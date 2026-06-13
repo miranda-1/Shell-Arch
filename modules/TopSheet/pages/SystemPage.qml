@@ -52,33 +52,5 @@ Item {
             }
         }
 
-        Row {
-            width: parent.width
-            spacing: Theme.gap
-
-            MetricCard {
-                width: (parent.width - Theme.gap * 2) / 3
-                glyph: ""
-                title: "CPU"
-                value: "Placeholder"
-                subtitle: "Coleta de CPU ainda não existe neste protótipo."
-            }
-
-            MetricCard {
-                width: (parent.width - Theme.gap * 2) / 3
-                glyph: ""
-                title: "Memória"
-                value: "Placeholder"
-                subtitle: "Slot pronto para métrica real futura."
-            }
-
-            MetricCard {
-                width: (parent.width - Theme.gap * 2) / 3
-                glyph: ""
-                title: "Temperatura"
-                value: "Placeholder"
-                subtitle: "Sem nova coleta adicionada nesta leva."
-            }
-        }
     }
 }

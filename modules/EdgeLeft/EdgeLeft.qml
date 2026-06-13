@@ -90,7 +90,7 @@ PanelWindow {
                 spacing: 2
 
                 ContextButton {
-                    glyph: ""
+                    glyph: ""
                     label: "Dashboard"
                     active: root.isPageActive("dashboard")
                     glyphColor: Theme.accent

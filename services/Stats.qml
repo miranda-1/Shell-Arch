@@ -9,14 +9,17 @@ import QtQuick
 Singleton {
     id: root
 
-    FileView { id: statFile; path: "/proc/stat"; preload: true; blockLoading: true }
-    FileView { id: memFile;  path: "/proc/meminfo"; preload: true; blockLoading: true }
+    FileView { id: statFile;    path: "/proc/stat"; preload: true; blockLoading: true }
+    FileView { id: memFile;     path: "/proc/meminfo"; preload: true; blockLoading: true }
     // x86_pkg_temp = temperatura do pacote da CPU (nome estável)
-    FileView { id: tempFile; path: "/sys/class/thermal/thermal_zone11/temp"; preload: true; blockLoading: true }
+    FileView { id: tempFile;    path: "/sys/class/thermal/thermal_zone11/temp"; preload: true; blockLoading: true }
+    // alienware_wmi temp2 = GPU (label confirmado em /sys/class/hwmon/hwmon6/temp2_label)
+    FileView { id: gpuTempFile; path: "/sys/class/hwmon/hwmon6/temp2_input"; preload: true; blockLoading: true }
 
     property real cpuPercent: 0
     property real memPercent: 0
     property int  tempC: 0
+    property int  gpuTempC: 0
 
     property real _prevTotal: -1
     property real _prevIdle: -1
@@ -55,12 +58,20 @@ Singleton {
             }
         }
 
-        // Temperatura (millidegrees → °C)
+        // Temperatura CPU (millidegrees → °C)
         const tp = tempFile.text();
         if (tp) {
             const n = parseInt(tp.trim());
             if (!isNaN(n))
                 root.tempC = Math.round(n / 1000);
+        }
+
+        // Temperatura GPU via alienware_wmi (millidegrees → °C)
+        const gp = gpuTempFile.text();
+        if (gp) {
+            const n = parseInt(gp.trim());
+            if (!isNaN(n))
+                root.gpuTempC = Math.round(n / 1000);
         }
     }
 
@@ -76,12 +87,14 @@ Singleton {
             statFile.reload();
             memFile.reload();
             tempFile.reload();
+            gpuTempFile.reload();
         }
     }
 
     readonly property string cpuText: Math.round(root.cpuPercent) + "%"
     readonly property string memText: Math.round(root.memPercent) + "%"
     readonly property string tempText: root.tempC + "°C"
+    readonly property string gpuText: root.gpuTempC + "°C"
 
     readonly property real memTotalGb: {
         const mt = memFile.text();

@@ -288,10 +288,11 @@ PanelWindow {
                 contentHeight: (pageLoader.item ? pageLoader.item.implicitHeight : 0) + root.bottomInset
                 boundsBehavior: Flickable.StopAtBounds
 
-                // barra de rolagem arrastável (aparece quando há overflow)
+                // barra de rolagem: só para páginas com conteúdo longo
                 ScrollBar.vertical: ScrollBar {
                     id: vbar
-                    policy: scroll.contentHeight > scroll.height ? ScrollBar.AlwaysOn : ScrollBar.AsNeeded
+                    readonly property bool pageNeedsScroll: ["keybinds", "dashboard", "workspaces", "system", "profile"].indexOf(root.displayedPage) >= 0
+                    policy: pageNeedsScroll && scroll.contentHeight > scroll.height ? ScrollBar.AlwaysOn : ScrollBar.AlwaysOff
                     width: 10
                     contentItem: Rectangle {
                         implicitWidth: 6
