@@ -1,396 +1,228 @@
 # ROADMAP — Shell Visual Quickshell
 
-> Documento permanente de direção do projeto. Serve de mapa para não nos
-> perdermos conforme a shell evolui. Atualize-o sempre que uma fase mudar de
-> estado ou quando a direção for revista.
+> Documento permanente de direção do projeto. Mapa para não nos perdermos.
+> Atualize sempre que uma etapa mudar de estado ou a direção for revista.
+> **Reescrito em 2026-06-13** com foco no caminho até o **uso diário definitivo**
+> (substituindo a Waybar). O histórico detalhado das Fases 0–8 está compactado na
+> seção 8; a seção 4 agora descreve o **caminho restante**.
 
 ## 1. Visão do projeto
 
 Construir uma **shell visual própria** em Quickshell/QML para **Arch + Hyprland + HyDE**.
-O objetivo final é uma shell **premium, estável, funcional e segura** para uso
-diário: bonita o suficiente para substituir mentalmente a barra atual, estável
-o suficiente para rodar o dia todo sem irritação, e segura o suficiente para
-**conviver com o sistema real sem quebrá-lo**.
+Objetivo final: shell **premium, estável, funcional e segura** para uso diário —
+bonita o suficiente para substituir a barra atual, estável o suficiente para
+rodar o dia todo sem irritação, segura o suficiente para **conviver com o
+sistema real sem quebrá-lo**.
 
-A direção aprovada é:
+Direção aprovada:
+- **sidebar esquerda premium** (`EdgeLeft`) como peça principal e seletor de contexto;
+- **TopSheet contextual** (8 páginas) como superfície de conteúdo;
+- **sem moldura contínua** (`ScreenFrame` DEPRECATED/inativo);
+- dados reais **somente** via serviços typed seguros em `services/`.
 
-- **sidebar esquerda premium** como peça principal da interface;
-- **TopSheet contextual** como superfície principal de conteúdo;
-- **sem moldura contínua** em volta da tela (o `ScreenFrame` fica inativo);
-- projeto ainda **isolado do sistema real**;
-- dados reais **somente** onde já houver serviço seguro e aprovado.
+## 2. Decisões de produto (tomadas em 2026-06-13)
 
-A evolução é incremental: primeiro a identidade visual e a UX ficam sólidas,
-depois vêm componentização, launcher funcional, dados reais somente leitura,
-integração com Hyprland, controles reais, tema dinâmico, performance e, por
-fim, um deploy opcional.
+Estas decisões guiam o caminho restante e **superam** dúvidas anteriores:
 
-## 2. Regras permanentes de segurança
+- **Destino da Waybar:** **SUBSTITUIR DE VEZ.** O deploy final desliga a Waybar do
+  HyDE e coloca a shell em autostart. Como isso mexe em `~/.config/hyde` /
+  `~/.config/hypr`, **exige autorização explícita no momento + rollback testado
+  ANTES**. (Etapa Deploy.)
+- **SystemTray:** **ESSENCIAL / BLOQUEANTE.** A shell não vira daily-driver sem
+  tray real (apps em background: VPN, Telegram, etc.). (Etapa T.)
+- **Brilho:** **somente a tela interna do notebook** (via sysfs/backlight). Monitor
+  externo (que exigiria `ddcutil`/DDC = `Process` pesado) **fica de fora**. (Etapa B.)
 
-Estas regras valem para **todas as fases**, salvo autorização explícita em contrário:
+## 3. Regras permanentes de segurança
+
+Valem para **todas as etapas**, salvo autorização explícita em contrário:
 
 - **não mexer fora de `~/Projetos/ui-shell-prototype/`** sem autorização explícita;
-- **não mexer em HyDE / Waybar / Hyprland reais** durante as fases visuais;
-- **não mexer em** boot, Secure Boot, SDDM, autostart, systemd, login, bateria ou PAM;
-- **não integrar dados reais** antes da base visual/UX estar aprovada;
-- **sempre manter o git limpo** antes de mudanças grandes;
-- **sempre criar commits pequenos** e focados;
-- **nunca dar push sem autorização**.
+- **não mexer em HyDE / Waybar / Hyprland / SDDM / boot / Secure Boot / systemd /
+  autostart / login / bateria / PAM** durante as etapas de desenvolvimento — só na
+  Etapa Deploy, e só com autorização explícita no momento;
+- **mutação do sistema apenas via API typed do Quickshell**, centralizada em
+  `services/` (política de 2026-06-09); `Process`/comando externo **proibido** sem
+  autorização explícita (exceção candidata: brilho interno — ver Etapa B);
+- leitura via `FileView` + DBus typed: permitida;
+- não parear/esquecer dispositivos BT nem gravar credenciais pela shell;
+- glyphs PUA Nerd Font **somem** no Write/Edit — gravar via script Python (`chr()`)
+  e validar com `iconv -t UTF-32LE | xxd`;
+- git sempre limpo antes de mudanças grandes; commits pequenos e focados;
+- **o usuário (Miranda) é quem commita** — a IA deixa a working tree pronta e
+  **nunca** dá push nem cria branch;
+- **só o usuário roda `qs -p`** (a IA não executa a shell; ela desenha layers na
+  tela dele). A IA valida com `qmllint`.
 
-## 3. Estado atual resumido (atualizado 2026-06-09 — abas acopladas + controles funcionais)
+## 4. Caminho até o uso diário (etapas restantes)
 
-- trabalho direto na **`main`** (linha oficial; sem branches); working tree limpa,
-  HEAD `869154e`;
-- `shell.qml` monta **EdgeLeft** e **TopSheet** por tela; roda via **`qs -p`**;
-- **`ScreenFrame` inativo/DEPRECATED**; EdgeTop/EdgeRight/Launcher antigos são
-  legado desmontado;
-- **visual P&B/grafite aprovado** (tema claro monocromático);
-- **abas acopladas à sidebar (aprovadas em 2026-06-09)**: cada página do TopSheet
-  nasce colada na EdgeLeft, na linha do seu botão, deslizando de dentro da barra
-  (horizontal, `tSlow`); troca de página recolhe → troca escondido → revela;
-  altura do painel encaixa no conteúdo; Sistema/Perfil ancoram pela base;
-  ⚠️ `interactiveLeft = 0` (a janela já desconta a exclusiveZone da barra —
-  nunca somar `Theme.barW` de novo);
-- **SearchPage aprovada**: launcher completo (foco automático, ↑/↓, Enter abre e
-  fecha, Esc limpa→fecha, hover unificado com teclado, estado vazio), sem header,
-  alinhada à lupa, largura própria (760);
-- **DashboardPage refinada e aprovada**: hero de data/hora, janela ativa com
-  chips, Rede/Energia, faixa de mídia com marquee; `MetricCard` com altura
-  derivada do conteúdo + elide (fix de texto vazando);
-- **POLÍTICA DE MUTAÇÃO ATUALIZADA (2026-06-09)**: escritas autorizadas
-  **somente via API typed do Quickshell**, centralizadas em `services/`;
-  `Process`/comando externo segue proibido;
-- **Controles funcionais implementados (Fase 8 antecipada, em validação)**:
-  Wi-Fi (toggle/scan/lista/conectar em rede salva — `Network.qml` estendido),
-  Bluetooth (toggle/pareados — serviço novo `Bluez.qml`), volume real Pipewire
-  (serviço novo `Audio.qml`, mute no badge), perfil de energia alternável
-  (`Battery.cycleProfile()`); brilho segue placeholder (DDC exigiria `Process`);
-- `QuickToggle` (corpo/switch com sinais) e `ControlSlider` (arrasto) agora são
-  interativos; `services/qmldir` registra 8 singletons;
-- ainda fake/pendente: brilho, CPU/MEM/TMP na SystemPage, SystemTray, ícones
-  reais no launcher;
-- **próximo passo**: usuário validar a ControlsPage no runtime (Bluetooth é o
-  ponto mais sensível — primeiro uso do módulo `Quickshell.Bluetooth`).
+> Fases 0–8 implementadas no código (ver seção 8). O que falta para o uso
+> definitivo está abaixo, **na ordem recomendada**. Legenda: 🔴 bloqueante para
+> daily-driver · 🟡 desejável/qualidade.
 
-## 4. Roadmap por fases
+### Etapa V — Validação no runtime 🔴 **(PORTÃO — fazer primeiro)**
 
-### Fase 0 — Base segura e versionamento ✅ CONCLUÍDA
+Nada abaixo deve avançar antes disto. **Nenhuma das funções da Fase 8 foi testada
+rodando ao vivo.**
 
 **Tarefas**
-- Git local e remoto correto;
-- usuário/email Git correto;
-- branch `main`;
-- `HANDOFF.md` e `ROADMAP.md` atualizados;
-- commits organizados.
+- usuário roda `qs -p ~/Projetos/ui-shell-prototype/shell.qml`;
+- validar abertura/troca/fechamento das 8 páginas do TopSheet;
+- validar **ControlsPage ao vivo** (ponto mais sensível):
+  - Wi-Fi: toggle, scan, lista, conectar em rede salva;
+  - **Bluetooth: toggle do adapter + conectar/desconectar pareados** (primeiro uso
+    real do módulo `Quickshell.Bluetooth` — risco maior);
+  - volume/mute (Pipewire); alternância de perfil de energia;
+- validar multi-monitor (eDP-1 + HDMI-A-1) e **click-through** do desktop;
+- anotar bugs; a IA corrige; revalidar.
 
 **Critério de conclusão**
-- `git status` limpo;
-- GitHub correto;
-- documentação coerente.
+- tudo funciona ao vivo sem crash; controles agem no sistema com segurança;
+- usuário aprova o comportamento real da ControlsPage.
 
-### Fase 1 — Identidade visual da shell ✅ CONCLUÍDA
+### Etapa T — SystemTray real 🔴 **(decisão: essencial)**
 
 **Tarefas**
-- sidebar esquerda premium;
-- refino de raio, sombra, espaçamento, densidade;
-- puxadores minimalistas;
-- consistência de `Theme.qml`;
-- remover sensação de retângulo/moldura.
+- consumir `Quickshell.Services.SystemTray` (`StatusNotifierItem`);
+- `Repeater` + `Image` delegate para os ícones dos apps em background;
+- definir **onde mora** o tray (provável: base da `EdgeLeft` ou uma faixa própria);
+- política sobre `activate`/menu de contexto (esquerda = activate, direita = menu);
+- elide/overflow se houver muitos ícones.
 
 **Critério de conclusão**
-- visual aprovado em todos os monitores;
-- `ScreenFrame` continua inativo;
-- `qmllint` limpo.
+- ícones reais de apps em background aparecem e respondem a clique;
+- menu de contexto funciona com segurança (sem spawn externo arbitrário).
 
-### Fase 2 — UX e interação estável ✅ CONCLUÍDA
+### Etapa M — Métricas reais (CPU/MEM/temp) 🟡
 
 **Tarefas**
-- EdgeRight aprovado e preservado;
-- Launcher por clique, não hover puro;
-- clique-fora/Esc para fechar;
-- click-through funcionando;
-- EdgeTop sem abertura acidental;
-- máscaras/input regions estáveis.
+- `FileView /proc/stat` (delta de CPU), `/proc/meminfo`, `/sys/class/hwmon/.../temp`;
+- novo serviço typed (ex.: `services/Stats.qml`) com polling controlado;
+- preencher a **SystemPage** (hoje fake) com valores reais.
 
 **Critério de conclusão**
-- launcher não some/volta sozinho;
-- painéis não abrem acidentalmente;
-- janelas atrás não entram em conflito.
+- CPU/MEM/temperatura reais na SystemPage; polling sem custo perceptível
+  (refinar na Etapa P).
 
-### Fase 3 — Limpeza e componentização ✅ CONCLUÍDA
+### Etapa B — Brilho interno 🟡 **(decisão: só tela interna)**
 
 **Tarefas**
-- revisar `components/`;
-- criar componentes reutilizáveis se necessário;
-- remover duplicação;
-- padronizar animações;
-- marcar `ScreenFrame` como obsoleto ou arquivado;
-- limpar comentários.
+- controlar **só a tela do notebook** via backlight (`/sys/class/backlight/...`);
+- resolver a forma de escrita dentro da política: idealmente escrita typed/sysfs
+  sem `Process`; se inevitável, propor **exceção mínima** (`brightnessctl`) só para
+  brilho interno, encapsulada num serviço, **com autorização explícita**;
+- monitor externo **continua placeholder honesto** (sem ddcutil).
 
 **Critério de conclusão**
-- código legível;
-- módulos bem separados;
-- nenhuma regressão visual.
+- slider de brilho controla a tela interna de verdade;
+- monitor externo segue claramente marcado como não-controlável.
 
-**Resultado (2026-06-06): CONCLUÍDA**
-- `Divider.qml` criado e aplicado em EdgeLeft e EdgeTop (pixel-idêntico);
-- tokens de tipografia/glyph/dimensão adicionados ao `Theme.qml` (aditivos);
-- tokens aplicados em `SliderPill`, `RingMeter` e `Dashboard` (valores idênticos);
-- `NowPlaying` avaliado e **não extraído** (layouts EdgeTop≠Dashboard divergem →
-  mudaria visual; decisão correta de não forçar a extração);
-- `ScreenFrame.qml` marcado **DEPRECATED** (legado da moldura; não reativar/remover);
-- `qmllint` limpo; visual praticamente idêntico; nenhum dado real.
-
-### Fase 4 — Launcher funcional ✅ CONCLUÍDA FUNCIONALMENTE
+### Etapa P — Performance e robustez 🔴
 
 **Tarefas**
-- `TextInput` real;
-- busca;
-- navegação por teclado;
-- lista de apps;
-- executar apps;
-- fechar após abrir app.
+- **soak test:** deixar rodando **horas** nos 2 monitores; observar vazamento de
+  memória, flicker, travamento de input, custo de CPU/GPU a 240Hz;
+- revisar `MultiEffect`/sombras e **reduzir polling** (Clock evented já; checar
+  Stats/Media/uptime);
+- garantir que fechar/reabrir a shell não deixa estado preso.
 
 **Critério de conclusão**
-- launcher usável no dia a dia;
-- busca estável;
-- foco de teclado funcionando.
+- estável por um dia inteiro de uso real, sem flicker nem regressão de input;
+- consumo aceitável.
 
-**Critérios de ENTRADA (Fase 4)**
-- Fases 0–3 concluídas (✅);
-- visual P&B aprovado, EdgeRight congelado, Launcher estável por clique;
-- `qmllint` limpo; trabalho direto na `main`.
+### Etapa Deploy — Substituir a Waybar 🔴 **(decisão: substituir de vez)**
 
-**Resultado (2026-06-06): CONCLUÍDA FUNCIONALMENTE**
-- Fonte de apps: `Quickshell DesktopEntries.applications`;
-- query vazia mostra 4 favoritos: `Opera`, `Terminal`,
-  `Visual Studio Code`, `Spotify`;
-- busca real implementada;
-- foco automático no campo de busca ao abrir;
-- navegação por teclado com `Up`/`Down`;
-- `Enter` executa o item selecionado;
-- clique executa a linha;
-- execução segura com `DesktopEntry.execute()`;
-- fecha após executar;
-- `Esc` e clique-fora preservados;
-- `mask`, input region e grip preservados;
-- sem `sh -c`, shell eval ou `execString` direto;
-- ícones reais tentados, mas **adiados**; tiles usam letras por enquanto.
-
-**Restrições da Fase 4 (mantidas durante a implementação)**
-- não integrar dados reais além do necessário para **listar/abrir apps locais**;
-- não mexer em Hyprland real;
-- não mexer em EdgeRight;
-- não mexer em boot/sistema/autostart;
-- **preservar o visual e o comportamento aprovados do Launcher** (abre por clique,
-  fecha por clique-fora/Esc; **não** voltar para hover puro).
-
-### Fase 5 — Dados reais somente leitura ✅ CONCLUÍDA FUNCIONALMENTE
+> **Única etapa que toca o sistema real. Só com autorização explícita no momento
+> e rollback testado ANTES de qualquer alteração.**
 
 **Tarefas**
-- hora/data reais; ✅
-- bateria (UPower); ✅
-- rede/SSID (Networking); ✅
-- perfil de energia (PowerProfiles); ✅
-- mídia/MPRIS; ✅
-- OS/WM/uptime (FileView + env); ✅
-- CPU/RAM/temp: ainda fake (sem serviço nativo; Fase futura).
-
-**Resultado (2026-06-07): CONCLUÍDA FUNCIONALMENTE**
-- `services/` criado com 5 singletons (`pragma Singleton`): `Clock`, `Battery`,
-  `Media`, `Network`, `System`.
-- `EdgeLeft`: relógio real, SSID real, perfil real; tooltip sem clip/flicker.
-- `Dashboard`: hora/data/calendário reais, OS/WM/uptime reais, bateria real.
-- `EdgeTop` aba Media: título/artista/álbum/progresso reais (MPRIS, read-only).
-- `IconButton`: flicker fix (`hlClear`), tooltip grafite, elide para labels longos.
-- Política: `FileView` + DBus read-only permitidos; execução externa/escrita proibidas.
-- `qmllint` exit 0; working tree limpa.
-
-**Pendências não-bloqueantes (carryover p/ Fase 6+)**
-- Ícones reais no Launcher (Fase 4 carryover).
-- SystemTray real (API disponível; adiado).
-- Performance (CPU/GPU/mem/temp) — requer política dedicada.
-- Media card no Dashboard (EdgeTop tem real; Dashboard ainda fake).
-
-### Fase 6 — Integração Hyprland + reestruturação visual ✅ IMPLEMENTADA / EM VALIDAÇÃO VISUAL
-
-**Tarefas**
-- workspaces reais via módulo nativo do Hyprland; ✅
-- workspace ativo; ✅
-- dots de workspace no EdgeLeft; ✅
-- aba Workspaces no EdgeTop; ✅
-- janela ativa, classe ativa e monitores reais; ✅
-- manter tudo somente leitura nesta fase; ✅
+- script `start`/`stop` da shell (e `qs kill` documentado);
+- **rollback documentado e testado primeiro** (como religar a Waybar em 1 comando);
+- autostart via `exec-once` do Hyprland (**mexe em `~/.config/hypr`** → autorização);
+- **desligar a Waybar do HyDE** (**mexe em `~/.config/hyde`** → autorização);
+- período de convivência opcional (shell + Waybar) antes do corte, se o usuário
+  quiser segurança extra mesmo tendo escolhido "substituir".
 
 **Critério de conclusão**
-- sidebar reflete o estado real do Hyprland; ✅
-- EdgeTop expõe dados reais de workspaces/monitores/janela; ✅
-- sem mexer em configs reais ainda; ✅
-- validação visual final do usuário ainda pendente.
+- shell inicia com a sessão de forma previsível;
+- Waybar desligada sem quebrar o HyDE;
+- rollback simples e comprovado;
+- sistema real preservado fora do que foi explicitamente autorizado.
 
-**Resultado (2026-06-07): IMPLEMENTADA EM MODO READ-ONLY**
-- `services/Hyprland.qml` consolidado sobre `Quickshell.Hyprland`.
-- `components/MarqueeText.qml` criado para overflow horizontal suave de títulos longos.
-- `EdgeLeft`: agora também funciona como seletor de contexto do TopSheet.
-- `TopSheet`: nova superfície superior com animação de descida e troca de páginas.
-- `WorkspacesPage`: workspaces reais em cards resumidos.
-- `MediaPage`: títulos/subtítulos longos protegidos por marquee e controles MPRIS reaproveitados.
-- sem alteração em `~/.config/hypr` e sem controles mutáveis do compositor.
+### Etapa Tema — Tema dinâmico (pós-deploy, opcional) 🟡
 
-### Fase 7 — Consolidação da arquitetura nova ✅ CONCLUÍDA FUNCIONALMENTE (2026-06-09)
-
-**Tarefas**
-- validar visualmente multi-monitor da nova shell; ✅
-- revisar densidade, altura e largura do TopSheet; ✅
-- decidir se `EdgeTop` legado deve ser removida do repo ou preservada como referência; (carryover)
-- decidir se `Launcher` legado pode ser arquivado depois da validação da `SearchPage`. (carryover)
-
-**Resultado (2026-06-09)**
-- Dashboard refinado (hero data/hora, janela ativa com chips, mídia em faixa);
-- SearchPage virou launcher completo, acoplado à lupa, com teclado restaurado;
-- abas do TopSheet coladas na sidebar, nascendo do botão que as abriu, com
-  coreografia horizontal de troca e altura encaixada no conteúdo — **aprovado**;
-- correção estrutural: `interactiveLeft = 0` (janela já desconta a exclusiveZone
-  da EdgeLeft; o gap fantasma de 46px era coordenada somada em dobro);
-- **carryover**: arquivamento formal do legado (EdgeTop/EdgeRight/Launcher)
-  ainda não decidido.
-
-**Critério de conclusão**
-- TopSheet validado pelo usuário; ✅
-- nenhuma duplicação visual remanescente; ✅
-- legado claramente documentado. ✅ (decisão de remoção pendente)
-
-### Fase 8 — Controles reais ✅ IMPLEMENTADA (2026-06-09) / EM VALIDAÇÃO NO RUNTIME
-
-**Tarefas**
-- volume; ✅ (Pipewire via `services/Audio.qml` — slider arrastável)
-- mute; ✅ (clique no badge de % do slider)
-- brilho; ❌ adiado — monitor externo exige DDC/ddcutil = `Process` (proibido
-  sem autorização explícita; slider segue placeholder honesto)
-- MPRIS/mídia; ✅ (já existia, preservado)
-- rede/Bluetooth primeiro como status, depois ações se aprovado. ✅
-  (Wi-Fi: toggle + scan + lista + conectar em rede salva; Bluetooth: toggle do
-  adapter + conectar/desconectar pareados via `services/Bluez.qml`)
-
-**Política aplicada**
-- toda mutação **somente via API typed do Quickshell**, centralizada nos
-  serviços; nenhuma senha/secret passa pela shell; nenhum `Process` novo.
-
-**Critério de conclusão**
-- sliders controlam o sistema com segurança; ⏳ implementado, **aguardando
-  validação do usuário no runtime** (Bluetooth é o primeiro uso do módulo);
-- nada quebra Waybar/HyDE. ✅ (sem processo externo, sem config tocada)
-
-### Fase 9 — Tema dinâmico e personalização
-
-**Tarefas**
-- tema claro/escuro;
-- tokens derivados do wallpaper;
-- variações de estilo;
-- configurações locais da shell.
-
-**Critério de conclusão**
-- tema consistente;
-- personalização sem editar vários arquivos.
-
-### Fase 10 — Performance e robustez
-
-**Tarefas**
-- medir CPU/RAM;
-- revisar `MultiEffect`/sombras;
-- reduzir polling;
-- testar por horas;
-- testar em 1 e 2 monitores.
-
-**Critério de conclusão**
-- shell estável para uso diário;
-- sem flicker;
-- sem travar input.
-
-### Fase 10 — Uso diário manual
-
-**Tarefas**
-- usar via `qs -p`;
-- testar por 1 dia;
-- corrigir bugs;
-- manter Waybar/HyDE intactos.
-
-**Critério de conclusão**
-- shell utilizável sem irritação;
-- sem autostart ainda.
-
-### Fase 11 — Deploy opcional
-
-**Tarefas**
-- decidir se substitui ou convive com a Waybar;
-- script start/stop;
-- autostart opcional só com autorização;
-- rollback documentado.
-
-**Critério de conclusão**
-- inicia e fecha de forma previsível;
-- rollback simples;
-- sistema real preservado.
-
-### Fase 12 — Projeto 100%
-
-**Checklist**
-- [ ] visual aprovado;
-- [ ] sidebar final;
-- [ ] EdgeTop estável;
-- [ ] EdgeRight funcional;
-- [ ] Launcher funcional;
-- [ ] dados reais;
-- [ ] workspaces reais;
-- [ ] volume/brilho reais;
-- [ ] mídia real;
-- [ ] tema dinâmico;
-- [ ] multi-monitor estável;
-- [ ] performance boa;
-- [ ] documentação atualizada;
-- [ ] rollback;
-- [ ] uso diário aprovado.
+- tema claro/escuro; tokens derivados do wallpaper; variações; config local da shell.
 
 ## 5. Ordem imediata recomendada
 
-Fases 0–8 implementadas no código (Fase 8 aguardando validação). A partir do estado atual:
+1. **Etapa V** — você roda e validamos tudo ao vivo (em especial Bluetooth). 🔴
+2. **Etapa T** — SystemTray real. 🔴
+3. **Etapas M e B** em paralelo — métricas reais + brilho interno. 🟡
+4. **Etapa P** — soak test / performance. 🔴
+5. **Etapa Deploy** — substituir a Waybar (autorização + rollback testado). 🔴
+6. **Etapa Tema** — quando quiser. 🟡
 
-1. usuário valida a **ControlsPage no runtime**: toggle e lista de Wi-Fi,
-   Bluetooth (ponto mais sensível — primeiro uso do módulo), volume/mute,
-   alternância de perfil; corrigir o que estranhar;
-2. decidir o caso do **brilho**: DDC/ddcutil = `Process` → exige conversa e
-   autorização explícita antes de qualquer implementação;
-3. **CPU/MEM/TMP reais na SystemPage** via `FileView /proc` (leitura, dentro da
-   política vigente);
-4. carryovers: SystemTray real, ícones reais no launcher, decisão de
-   arquivamento do legado (EdgeTop/EdgeRight/Launcher);
-5. seguir sem alterar `~/.config/hypr` nem configs Hyprland reais.
+## 6. Checklist "projeto 100% / daily-driver"
 
-## 6. Commits sugeridos por tipo
+- [x] visual aprovado (P&B/grafite)
+- [x] sidebar final (EdgeLeft)
+- [x] TopSheet estável (abas acopladas)
+- [x] Launcher funcional
+- [x] dados reais read-only (hora/bateria/rede/mídia/OS/uptime)
+- [x] workspaces reais
+- [x] volume/mídia reais
+- [x] Wi-Fi/Bluetooth/perfil reais (implementados)
+- [ ] **controles validados ao vivo** (Etapa V)
+- [ ] **SystemTray real** (Etapa T)
+- [ ] CPU/MEM/temp reais (Etapa M)
+- [ ] brilho interno real (Etapa B)
+- [ ] multi-monitor estável + soak test (Etapa P)
+- [ ] autostart + Waybar substituída + rollback (Etapa Deploy)
+- [ ] tema dinâmico (opcional)
 
-- `docs: adicionar roadmap do projeto`
-- `style: refinar visual da shell`
-- `fix: estabilizar launcher com abertura por clique`
-- `refactor: organizar componentes da shell`
-- `feat: adicionar busca funcional ao launcher`
-- `feat: adicionar dados reais somente leitura`
-- `feat: integrar workspaces do Hyprland`
-- `chore: preparar deploy opcional da shell`
+## 7. Não fazer
 
-## 7. Não fazer agora
-
-- não reativar legado (`ScreenFrame` DEPRECATED, EdgeTop/EdgeRight/Launcher antigos);
+- não reativar legado (`ScreenFrame` DEPRECATED; EdgeTop/EdgeRight/Launcher antigos);
 - não regredir dados reais para fake nem o visual aprovado das abas acopladas;
-- não voltar a somar `Theme.barW` nas coordenadas do TopSheet (`interactiveLeft = 0`);
-- não usar fundo translúcido (`Theme.bar`) no painel — fantasma sobre janelas;
-- não implementar **brilho** sem conversa/autorização (exigiria `Process`/DDC);
-- não adicionar mutação fora dos serviços typed de `services/` (política 2026-06-09);
-- não parear/esquecer dispositivos Bluetooth nem gravar credenciais pela shell;
-- não colar glyphs PUA crus em arquivos (somem) — gravar via Python `chr()` + validar com hexdump;
-- não alterar `~/.config/hypr` nem configs Hyprland reais;
-- não criar autostart nem fazer deploy por enquanto;
-- não substituir a Waybar;
-- não mexer no sistema real (HyDE/SDDM/boot/systemd/login/bateria/PAM);
-- não usar execução externa/comandos externos sem autorização explícita;
-- não fazer push sem autorização;
-- não commitar bug como feature aprovada.
+- não somar `Theme.barW` nas coordenadas do TopSheet (`interactiveLeft = 0`);
+- não usar fundo translúcido (`Theme.bar`) no painel — vaza janelas ("fantasma");
+- não adicionar mutação fora dos serviços typed de `services/`;
+- não usar `ddcutil`/DDC para brilho externo (decisão 2026-06-13);
+- **não tocar `~/.config/hypr` / `~/.config/hyde` / Waybar fora da Etapa Deploy** —
+  e mesmo lá, só com autorização explícita no momento e rollback pronto;
+- não criar autostart antes da Etapa Deploy;
+- não commitar (working tree fica para o Miranda); nunca dar push nem criar branch;
+- a IA não roda `qs -p` — só `qmllint`.
+
+## 8. Histórico das fases concluídas (registro compacto)
+
+- **Fase 0 — Base/versionamento ✅** git local+remoto, `main`, docs.
+- **Fase 1 — Identidade visual ✅** sidebar premium; sem moldura; tema P&B/grafite.
+- **Fase 2 — UX/interação ✅** abertura por clique, Esc/clique-fora, click-through,
+  máscaras estáveis.
+- **Fase 3 — Componentização ✅** `Divider.qml`; tokens aditivos no `Theme.qml`;
+  `ScreenFrame` DEPRECATED.
+- **Fase 4 — Launcher funcional ✅** `DesktopEntries` + `DesktopEntry.execute()`,
+  busca, foco, ↑/↓, Enter; ícones reais adiados (tiles com letra).
+- **Fase 5 — Dados reais read-only ✅** `services/` com singletons Clock, Battery,
+  Media, Network, System (FileView + DBus typed).
+- **Fase 6 — Hyprland read-only ✅** `services/Hyprland.qml`; workspaces/janela/
+  monitor reais; `MarqueeText.qml`.
+- **Fase 7 — Consolidação ✅** TopSheet com abas acopladas à sidebar (nascem do
+  botão, slide horizontal, altura encaixa no conteúdo); SearchPage = launcher
+  completo; **descoberta crítica `interactiveLeft = 0`** (janela já desconta a
+  exclusiveZone — nunca somar `Theme.barW`).
+- **Fase 8 — Controles reais ✅ implementada / ❌ não validada ao vivo** volume/mute
+  (`Audio.qml`), Wi-Fi toggle+scan+conectar-rede-salva (`Network.qml`), Bluetooth
+  toggle+pareados (`Bluez.qml`), perfil de energia (`Battery.cycleProfile()`).
+  Brilho = placeholder. **Validação no runtime é a Etapa V acima.**
+
+## 9. Comandos de retomada
+
+```sh
+cd ~/Projetos/ui-shell-prototype/
+git log --oneline -5
+git status
+qmllint shell.qml modules/TopSheet/TopSheet.qml modules/TopSheet/pages/*.qml services/*.qml
+qs -p ~/Projetos/ui-shell-prototype/shell.qml   # SÓ o usuário roda — fechar com Ctrl+C ou `qs kill`
+```

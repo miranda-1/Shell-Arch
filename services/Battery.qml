@@ -63,19 +63,26 @@ Singleton {
         }
     }
 
-    // Fase de controles funcionais (autorizada): alterna o perfil de energia
-    // pela API typed do PowerProfiles — única escrita deste serviço.
-    function cycleProfile() {
+    // índice do perfil atual: 0=Economia, 1=Equilibrado, 2=Performance
+    readonly property int profileIndex: {
         switch (PowerProfiles.profile) {
-        case PowerProfile.PowerSaver:
-            PowerProfiles.profile = PowerProfile.Balanced;
-            break;
-        case PowerProfile.Balanced:
-            PowerProfiles.profile = PowerProfile.Performance;
-            break;
-        default:
-            PowerProfiles.profile = PowerProfile.PowerSaver;
-            break;
+        case PowerProfile.PowerSaver:   return 0;
+        case PowerProfile.Performance:  return 2;
+        default:                        return 1;
         }
+    }
+
+    // Fase de controles funcionais (autorizada): altera o perfil de energia
+    // pela API typed do PowerProfiles — única escrita deste serviço.
+    function setProfileIndex(i) {
+        switch (i) {
+        case 0:  PowerProfiles.profile = PowerProfile.PowerSaver;   break;
+        case 2:  PowerProfiles.profile = PowerProfile.Performance;  break;
+        default: PowerProfiles.profile = PowerProfile.Balanced;     break;
+        }
+    }
+
+    function cycleProfile() {
+        root.setProfileIndex((root.profileIndex + 1) % 3);
     }
 }

@@ -6,11 +6,67 @@
 
 ---
 
-## 0. ESTADO ATUAL AUTORITATIVO (atualizado 2026-06-09)
+## 0. ESTADO ATUAL AUTORITATIVO (atualizado 2026-06-13)
 
 > **Leia esta seção primeiro.** Ela é a fonte de verdade atual e **supersede** as
-> seções históricas abaixo onde houver conflito. As seções 1–14 continuam como
-> registro do caminho anterior, mas a shell ativa mudou de arquitetura nesta data.
+> seções históricas abaixo onde houver conflito.
+
+### 0.−1 Sessão 2026-06-13 — virada para o uso diário + 3 decisões de produto (SUPERSEDE tudo abaixo onde conflitar)
+
+O usuário pediu para **retomar o projeto com o objetivo de usá-lo em definitivo**
+no lugar da Waybar. Estado conferido nesta data: `qmllint` exit 0 nos arquivos
+centrais; git limpo no HEAD `e01e209 docs: ajuste no roadmap`; Quickshell 0.3.0
+(`quickshell-git`). O **ROADMAP.md foi reescrito** com o caminho restante até o
+daily-driver (Etapas V → T → M/B → P → Deploy). Esta seção registra a direção;
+o ROADMAP tem os critérios por etapa.
+
+**Decisões de produto tomadas nesta sessão (guiam o caminho restante):**
+1. **Waybar → SUBSTITUIR DE VEZ.** O deploy final desliga a Waybar do HyDE e põe a
+   shell em autostart. Como mexe em `~/.config/hyde` / `~/.config/hypr`, **só na
+   Etapa Deploy, com autorização explícita no momento e rollback testado ANTES**.
+2. **SystemTray → ESSENCIAL / BLOQUEANTE.** Vira pré-requisito do uso diário
+   (Etapa T): `Quickshell.Services.SystemTray` + `Image` delegate + política de
+   activate/menu.
+3. **Brilho → SOMENTE TELA INTERNA** (sysfs/backlight). Monitor externo (ddcutil/
+   DDC = `Process` pesado) **fica de fora**. Se a escrita exigir `brightnessctl`,
+   propor exceção mínima só para brilho interno, com autorização.
+
+**GARGALO Nº 1 (não mudou): a Fase 8 nunca foi validada rodando.** A primeira
+coisa do próximo passo é a **Etapa V** — o usuário roda `qs -p` e validamos tudo
+ao vivo, em especial a **ControlsPage** (Wi-Fi/Bluetooth/volume/perfil). Bluetooth
+é o ponto mais sensível (primeiro uso real de `Quickshell.Bluetooth`).
+
+**Ordem imediata:** Etapa V (validar ao vivo) → Etapa T (SystemTray) → Etapas M+B
+(métricas reais + brilho interno) → Etapa P (soak/performance) → Etapa Deploy
+(substituir Waybar). Detalhes e critérios: `ROADMAP.md` seção 4.
+
+**Correções da ControlsPage feitas nesta sessão (a partir do feedback do usuário —
+qmllint exit 0; AINDA não rodado ao vivo):**
+- **Wi-Fi clicável (bug de raiz corrigido):** `Network.qml` usava `net.network`
+  (propriedade inexistente) em `canConnect`/`connectToNetwork`, então `canConnect`
+  era **sempre false** → nada clicava. Verdade da API (qmltypes): `WifiNetwork`
+  herda de `Network`; o próprio objeto tem `connect()`, `disconnect()`, `forget()`
+  e `connectWithPsk(psk)`; a propriedade é `device`, não `network`. Agora todas as
+  redes são clicáveis: conectada→desconecta; salva/aberta→conecta; **protegida
+  nova→abre campo de senha inline** e chama `connectWithPsk` (senha não é logada
+  nem guardada).
+- **Perfil de energia:** virou seletor de **3 estados** (Economia/Equilibrado/
+  Performance) com 3 segmentos clicáveis; `Battery.profileIndex` + `setProfileIndex(i)`.
+- **Bateria:** deixou de ser um "botão"/switch sem ação — agora é card **só
+  informativo** (%, carregando/tempo restante).
+- **Bluetooth pareamento:** `Bluez.qml` ganhou `setDiscovering`/`discovering`,
+  `discoveredDevices` (não pareados) e `pairDevice` (marca `trusted` + `pair()`);
+  a página liga o scan só com o painel BT aberto e mostra "Disponíveis para parear".
+- **Brilho (EXCEÇÃO DE POLÍTICA — primeiro `Process` do projeto):** novo
+  `services/Brightness.qml` controla **só a tela interna** (`nvidia_wmi_ec_backlight`).
+  Leitura via `FileView` no sysfs (watchChanges); **escrita via
+  `Quickshell.execDetached(["brightnessctl", "-d", <dev>, "set", "N%"])`** porque o
+  sysfs é root-only e o usuário está em `wheel` (não `video`). Comando fixo, sem
+  shell eval, escopado ao backlight interno. Monitor externo (ddcutil/DDC)
+  **continua fora** por decisão. ⚠️ Isto abre a 1ª exceção ao "sem Process" — se a
+  validação reprovar, reverter é trivial (remover o serviço + religar placeholder).
+
+---
 
 ### 0.0 Sessão 2026-06-09 — abas acopladas + controles funcionais (SUPERSEDE os itens 1–15 abaixo onde conflitar)
 
