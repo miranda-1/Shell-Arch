@@ -14,6 +14,14 @@ PanelWindow {
 
     signal requestPage(string pageId)
 
+    // glyphs preenchidos via script (PUA some no editor)
+    property string glyphKeybinds: ""
+    property string glyphAppearance: "󰌹"
+    property string glyphPower: ""
+    property string glyphCpu: ""
+    property string glyphMem: "󰍛"
+    property string glyphTemp: ""
+
     screen: modelData
     readonly property string screenMonitorName: Hyprland.monitorNameForScreen(root.screen)
     readonly property var workspaceDots: Hyprland.workspacesForScreen(root.screen)
@@ -114,7 +122,22 @@ PanelWindow {
                     glyph: ""
                     label: Media.available ? "Mídia: " + Media.displayTitle : "Mídia"
                     active: root.isPageActive("media")
+                    spinning: Media.isPlaying
                     onClicked: root.requestPage("media")
+                }
+
+                ContextButton {
+                    glyph: root.glyphKeybinds
+                    label: "Atalhos do teclado"
+                    active: root.isPageActive("keybinds")
+                    onClicked: root.requestPage("keybinds")
+                }
+
+                ContextButton {
+                    glyph: root.glyphAppearance
+                    label: "Aparência: tema e fundo"
+                    active: root.isPageActive("appearance")
+                    onClicked: root.requestPage("appearance")
                 }
 
                 Item {
@@ -246,7 +269,38 @@ PanelWindow {
 
             Column {
                 anchors { bottom: parent.bottom; bottomMargin: Theme.gap; horizontalCenter: parent.horizontalCenter }
-                spacing: 2
+                spacing: 4
+
+                // métricas ao vivo (CPU/MEM/TEMP) — clique abre o painel de stats
+                Item {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    width: Theme.barW
+                    height: statsCol.implicitHeight + 6
+                    readonly property bool on: root.isPageActive("stats")
+
+                    HoverHandler { id: statsHover; cursorShape: Qt.PointingHandCursor }
+                    TapHandler { acceptedButtons: Qt.LeftButton; onTapped: root.requestPage("stats") }
+
+                    Column {
+                        id: statsCol
+                        anchors.centerIn: parent
+                        spacing: 6
+
+                        Repeater {
+                            model: [root.glyphCpu, root.glyphMem, root.glyphTemp]
+                            delegate: Text {
+                                required property var modelData
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                text: modelData
+                                font.family: Theme.iconFont
+                                font.pixelSize: 13
+                                color: parent.parent.on || statsHover.hovered ? Theme.accent : Theme.textDim
+
+                                Behavior on color { ColorAnimation { duration: Theme.tFast } }
+                            }
+                        }
+                    }
+                }
 
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
@@ -272,21 +326,11 @@ PanelWindow {
                 }
 
                 ContextButton {
-                    glyph: ""
-                    label: "Sistema\n" + (System.uptimeText || "uptime indisponível")
-                    active: root.isPageActive("system")
+                    glyph: root.glyphPower
+                    label: "Desligar, reiniciar e mais"
+                    active: root.isPageActive("power")
                     glyphColor: Theme.textDim
-                    onClicked: root.requestPage("system")
-                }
-
-                ContextButton {
-                    glyph: ""
-                    label: Battery.available
-                        ? "Perfil e energia\n" + Battery.statusText + " • " + Battery.profileText
-                        : "Perfil e energia"
-                    active: root.isPageActive("profile")
-                    glyphColor: Theme.textDim
-                    onClicked: root.requestPage("profile")
+                    onClicked: root.requestPage("power")
                 }
             }
         }

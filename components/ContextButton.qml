@@ -9,6 +9,8 @@ Item {
     property bool active: false
     property color glyphColor: Theme.text
     property bool enabled: true
+    // gira o glyph continuamente (usado p/ mídia tocando)
+    property bool spinning: false
 
     signal clicked()
 
@@ -45,6 +47,14 @@ Item {
         opacity: root.enabled ? 1 : 0.5
         font.family: Theme.iconFont
         font.pixelSize: Theme.iconSize
+
+        RotationAnimator on rotation {
+            running: root.spinning
+            loops: Animation.Infinite
+            from: 0
+            to: 360
+            duration: 3600
+        }
     }
 
     HoverHandler {

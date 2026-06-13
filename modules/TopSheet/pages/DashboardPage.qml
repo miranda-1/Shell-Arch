@@ -287,6 +287,14 @@ Item {
                             font.family: Theme.iconFont
                             font.pixelSize: 24
                             color: Media.isPlaying ? Theme.textOnAccent : Theme.accentActive
+
+                            RotationAnimator on rotation {
+                                running: Media.isPlaying
+                                loops: Animation.Infinite
+                                from: 0
+                                to: 360
+                                duration: 3600
+                            }
                         }
                     }
 
