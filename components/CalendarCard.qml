@@ -1,15 +1,35 @@
 import "../config"
+import "../services"
 import QtQuick
 
-// Mini-calendário do mês corrente. Recebe `cells` (grade real do Clock) e marca
-// o dia `highlight` em círculo clay. Semana começando na segunda-feira.
+// Mini-calendário navegável do mês corrente. Mantém estado próprio de mês/ano
+// (inicia no mês atual do Clock) e marca o dia de hoje em círculo clay — só
+// quando o mês exibido é o atual. Semana começando na segunda-feira.
 Rectangle {
     id: root
 
-    property int highlight: -1
-    // Lista de células do mês: cada item { day: int (0 = vazio), empty: bool }.
-    // Vem do Clock; semana começa na segunda (alinhado ao cabeçalho Mon..Sun).
-    property var cells: []
+    // Mês exibido (navegável). Inicia no mês atual; setas mudam mês/ano.
+    property int viewYear: Clock.currentYear
+    property int viewMonth: Clock.currentMonth   // 1–12
+
+    readonly property bool isCurrentMonth: root.viewYear === Clock.currentYear
+                                           && root.viewMonth === Clock.currentMonth
+    readonly property var cells: Clock.monthCells(root.viewYear, root.viewMonth)
+    // dia a destacar: só faz sentido no mês atual.
+    readonly property int highlight: root.isCurrentMonth ? Clock.currentDay : -1
+
+    function prevMonth() {
+        if (root.viewMonth === 1) { root.viewMonth = 12; root.viewYear -= 1; }
+        else root.viewMonth -= 1;
+    }
+    function nextMonth() {
+        if (root.viewMonth === 12) { root.viewMonth = 1; root.viewYear += 1; }
+        else root.viewMonth += 1;
+    }
+    function goToday() {
+        root.viewYear = Clock.currentYear;
+        root.viewMonth = Clock.currentMonth;
+    }
 
     color: Theme.card
     radius: Theme.radius
@@ -22,11 +42,64 @@ Rectangle {
         anchors { top: parent.top; left: parent.left; right: parent.right; margins: Theme.pad }
         spacing: Theme.gap
 
+        // Navegação: ‹  Junho de 2026  › — clique no rótulo volta para hoje.
+        Item {
+            width: parent.width
+            height: 30
+
+            Rectangle {
+                id: prevBtn
+                anchors { left: parent.left; verticalCenter: parent.verticalCenter }
+                width: 28; height: 28; radius: 14
+                antialiasing: true
+                color: prevHover.hovered ? Theme.accentSoft : "transparent"
+                Behavior on color { ColorAnimation { duration: Theme.tFast } }
+                Text {
+                    anchors.centerIn: parent
+                    text: ""
+                    font.family: Theme.iconFont
+                    font.pixelSize: Theme.glyphSm
+                    color: Theme.textDim
+                }
+                HoverHandler { id: prevHover }
+                TapHandler { onTapped: root.prevMonth() }
+            }
+
+            Text {
+                id: monthLabel
+                anchors.centerIn: parent
+                text: Clock.monthLabel(root.viewYear, root.viewMonth)
+                font.pixelSize: Theme.fsLabel
+                font.bold: true
+                color: Theme.text
+                HoverHandler { id: labelHover }
+                TapHandler { onTapped: root.goToday() }
+            }
+
+            Rectangle {
+                id: nextBtn
+                anchors { right: parent.right; verticalCenter: parent.verticalCenter }
+                width: 28; height: 28; radius: 14
+                antialiasing: true
+                color: nextHover.hovered ? Theme.accentSoft : "transparent"
+                Behavior on color { ColorAnimation { duration: Theme.tFast } }
+                Text {
+                    anchors.centerIn: parent
+                    text: ""
+                    font.family: Theme.iconFont
+                    font.pixelSize: Theme.glyphSm
+                    color: Theme.textDim
+                }
+                HoverHandler { id: nextHover }
+                TapHandler { onTapped: root.nextMonth() }
+            }
+        }
+
         Row {
             anchors.horizontalCenter: parent.horizontalCenter
             spacing: 0
             Repeater {
-                model: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+                model: ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"]
                 delegate: Text {
                     required property var modelData
                     width: 34

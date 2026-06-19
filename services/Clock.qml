@@ -61,14 +61,26 @@ Singleton {
     // Grade pronta: células vazias antes do dia 1, dias 1..daysInMonth, e
     // preenchimento vazio até completar a última linha (múltiplo de 7).
     // Cada célula: { day: int (0 = vazio), empty: bool }.
-    readonly property var calendarCells: {
+    readonly property var calendarCells: root.monthCells(root.currentYear, root.currentMonth)
+
+    // Gera a grade de qualquer mês (year, month 1–12) — usada pela navegação do
+    // calendário. Mesma forma de célula do `calendarCells`; semana na segunda.
+    function monthCells(year, month) {
         const cells = [];
-        for (let i = 0; i < root.firstWeekday; i++)
+        const firstWd = (new Date(year, month - 1, 1).getDay() + 6) % 7;
+        const dim = new Date(year, month, 0).getDate();
+        for (let i = 0; i < firstWd; i++)
             cells.push({ day: 0, empty: true });
-        for (let d = 1; d <= root.daysInMonth; d++)
+        for (let d = 1; d <= dim; d++)
             cells.push({ day: d, empty: false });
         while (cells.length % 7 !== 0)
             cells.push({ day: 0, empty: true });
         return cells;
+    }
+
+    // Rótulo "Junho de 2026" para qualquer mês (year, month 1–12).
+    function monthLabel(year, month) {
+        const d = new Date(year, month - 1, 1);
+        return root._cap(d.toLocaleDateString(root._loc, "MMMM")) + " de " + year;
     }
 }
