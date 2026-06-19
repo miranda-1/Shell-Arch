@@ -34,7 +34,10 @@ Item {
             delegate: Rectangle {
                 id: wsCard
                 required property var modelData
-                readonly property int winCount: Hyprland.workspaceWindowCount(modelData)
+                // conta pela lista real de toplevels (o IPC "windows" vem 0 em
+                // workspace recém-criado) — alinha com o que o preview renderiza.
+                readonly property int winCount: Math.max(Hyprland.workspaceToplevels(modelData).length,
+                                                         Hyprland.workspaceWindowCount(modelData))
                 readonly property bool focused: Hyprland.isWorkspaceFocused(modelData)
                 readonly property bool active: Hyprland.isWorkspaceActive(modelData)
                 readonly property bool activatable: Hyprland.canActivateWorkspace(modelData)
