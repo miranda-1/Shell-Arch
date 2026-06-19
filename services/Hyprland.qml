@@ -151,6 +151,51 @@ Singleton {
         return true;
     }
 
+    // ---- foco de janela existente ("me leve até o app") ----
+    // Procura um toplevel cuja class/initialClass case com algum dos hints e o
+    // foca via IPC typed do Hyprland (dispatch — não é Process). Retorna true se
+    // focou. Usado pelo launcher para "raise" em vez de abrir nova instância.
+    function findToplevelByClass(hints) {
+        if (!hints || hints.length === 0)
+            return null;
+
+        const tops = root._modelValues(root._hypr.toplevels);
+        for (let i = 0; i < tops.length; i++) {
+            const top = tops[i];
+            const cls = root._toplevelClassText(top);
+            if (!cls)
+                continue;
+
+            for (let h = 0; h < hints.length; h++) {
+                const hint = root._safeString(hints[h], "").toLowerCase();
+                if (hint && cls.indexOf(hint) >= 0)
+                    return top;
+            }
+        }
+
+        return null;
+    }
+
+    function raiseByClass(hints) {
+        const top = root.findToplevelByClass(hints);
+        if (!top || !top.address)
+            return false;
+
+        // address vem como "0x...." — focuswindow troca de workspace se preciso.
+        root._hypr.dispatch("focuswindow address:" + top.address);
+        return true;
+    }
+
+    function _toplevelClassText(toplevel) {
+        if (!toplevel)
+            return "";
+
+        const object = toplevel.lastIpcObject;
+        const className = root._safeString(object ? object["class"] : "", "");
+        const initialClass = root._safeString(object ? object["initialClass"] : "", "");
+        return (className + " " + initialClass).toLowerCase().trim();
+    }
+
     function workspaceSortKey(workspace) {
         if (!workspace)
             return "9:~";

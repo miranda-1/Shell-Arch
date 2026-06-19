@@ -41,8 +41,22 @@ PanelWindow {
         ? "Workspace " + Hyprland.workspaceLabel(root.screenWorkspace) + "\n" + Hyprland.workspaceWindowSummary(root.screenWorkspace)
         : "Desktop"
 
+    // item do tray cujo menu de contexto está aberto (null = fechado)
+    property var trayMenuItem: null
+
     function isPageActive(pageId) {
         return root.contextOpen && root.currentPage === pageId;
+    }
+
+    // Abre o menu de contexto de um item do tray ancorado ao delegate `source`.
+    function openTrayMenu(item, source) {
+        if (!item)
+            return;
+        const p = source.mapToItem(null, source.width, source.height / 2);
+        trayMenuPopup.anchorX = p.x;
+        trayMenuPopup.anchorY = p.y;
+        root.trayMenuItem = item;
+        trayMenuPopup.visible = true;
     }
 
     function workspaceTooltipText(workspace, realWorkspace, activeWorkspace, focusedWorkspace) {
@@ -271,6 +285,30 @@ PanelWindow {
                 anchors { bottom: parent.bottom; bottomMargin: Theme.gap; horizontalCenter: parent.horizontalCenter }
                 spacing: 4
 
+                // SystemTray real — ícones de apps em background. Esquerda=activate,
+                // meio=secondaryActivate, direita=menu de contexto (DBus).
+                Column {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    spacing: 2
+                    visible: Tray.hasItems
+
+                    Repeater {
+                        model: Tray.items
+                        delegate: TrayItem {
+                            onMenuRequested: (item, source) => root.openTrayMenu(item, source)
+                        }
+                    }
+                }
+
+                Item {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    width: Theme.iconSize
+                    height: Theme.gap
+                    visible: Tray.hasItems
+
+                    Divider { anchors.centerIn: parent }
+                }
+
                 // métricas ao vivo (CPU/MEM/TEMP) — clique abre o painel de stats
                 Item {
                     anchors.horizontalCenter: parent.horizontalCenter
@@ -333,6 +371,40 @@ PanelWindow {
                     onClicked: root.requestPage("power")
                 }
             }
+        }
+    }
+
+    // Menu de contexto do tray (DBusMenu) — popup ancorado à direita da barra,
+    // na linha do ícone clicado. grabFocus permite fechar clicando fora.
+    PopupWindow {
+        id: trayMenuPopup
+
+        property real anchorX: Theme.barW
+        property real anchorY: 0
+
+        anchor.window: root
+        anchor.rect.x: trayMenuPopup.anchorX
+        anchor.rect.y: trayMenuPopup.anchorY
+        anchor.rect.width: 1
+        anchor.rect.height: 1
+        anchor.edges: Edges.Right
+        anchor.gravity: Edges.Right | Edges.Top
+
+        implicitWidth: trayMenuContent.implicitWidth
+        implicitHeight: trayMenuContent.implicitHeight
+        color: "transparent"
+        visible: false
+        grabFocus: true
+
+        onVisibleChanged: {
+            if (!trayMenuPopup.visible)
+                root.trayMenuItem = null;
+        }
+
+        TrayMenu {
+            id: trayMenuContent
+            menuHandle: root.trayMenuItem ? root.trayMenuItem.menu : null
+            onClosed: trayMenuPopup.visible = false
         }
     }
 }

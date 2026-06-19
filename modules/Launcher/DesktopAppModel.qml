@@ -57,6 +57,10 @@ QtObject {
             || haystack.indexOf("opera") >= 0;
     }
 
+    function isKittyEntry(entry, haystack) {
+        return haystack.indexOf("kitty") >= 0;
+    }
+
     function isCodeEntry(entry, haystack) {
         return haystack.indexOf("visual studio code") >= 0
             || haystack.indexOf("vscode") >= 0
@@ -70,20 +74,48 @@ QtObject {
 
     function favoriteSpecs() {
         return [
-            { label: "Opera", matcher: isOperaEntry },
-            { label: "Terminal", matcher: isTerminalEntry },
-            { label: "Visual Studio Code", matcher: isCodeEntry },
-            { label: "Spotify", matcher: isSpotifyEntry }
+            { label: "Opera", matcher: isOperaEntry, classHints: ["opera"] },
+            { label: "Kitty", matcher: isKittyEntry, classHints: ["kitty"] },
+            { label: "Visual Studio Code", matcher: isCodeEntry, classHints: ["code", "vscode", "code-oss"] },
+            { label: "Spotify", matcher: isSpotifyEntry, classHints: ["spotify"] }
         ];
     }
 
-    function displayLabelForEntry(entry, haystack) {
+    function favoriteFor(entry, haystack) {
         for (const favorite of favoriteSpecs()) {
             if (favorite.matcher(entry, haystack))
-                return favorite.label;
+                return favorite;
         }
 
-        return entry.name || "";
+        return null;
+    }
+
+    function displayLabelForEntry(entry, haystack) {
+        const favorite = favoriteFor(entry, haystack);
+        return favorite ? favorite.label : (entry.name || "");
+    }
+
+    // Hints de WM class para "raise" (focar janela existente). Favoritos têm
+    // class conhecida; o resto deriva de startupClass / id / nome.
+    function classHintsForEntry(entry, haystack) {
+        const favorite = favoriteFor(entry, haystack);
+        if (favorite && favorite.classHints)
+            return favorite.classHints;
+
+        const hints = [];
+        const startupClass = (entry.startupClass || "").toString().trim();
+        if (startupClass)
+            hints.push(startupClass.toLowerCase());
+
+        const id = (entry.id || "").toString().trim();
+        if (id)
+            hints.push(id.replace(/\.desktop$/i, "").toLowerCase());
+
+        const name = (entry.name || "").toString().trim().toLowerCase();
+        if (name)
+            hints.push(name);
+
+        return hints;
     }
 
     function normalizeEntry(entry, displayName, rowIndex) {
@@ -96,6 +128,7 @@ QtObject {
             : comment.length ? comment
             : (resolvedName !== name ? name : "");
         const initial = resolvedName.trim().length ? resolvedName.trim().charAt(0).toUpperCase() : "?";
+        const haystack = haystackFor(entry);
 
         return {
             desktopEntry: entry,
@@ -111,7 +144,8 @@ QtObject {
             command: entry.command || [],
             runInTerminal: entry.runInTerminal || false,
             subtitle: subtitle,
-            initial: initial
+            initial: initial,
+            classHints: classHintsForEntry(entry, haystack)
         };
     }
 
@@ -209,6 +243,8 @@ QtObject {
             return normalized;
         }
 
+        // Busca vazia: mostra apenas os favoritos definidos (sem preencher com
+        // apps aleatórios do índice).
         for (const favorite of favorites) {
             for (let i = 0; i < entries.length && normalized.length < capped; i++) {
                 const entry = entries[i];
@@ -217,10 +253,6 @@ QtObject {
                 if (favorite.matcher(entry, haystack) && tryPush(entry, favorite.label))
                     break;
             }
-        }
-
-        for (let i = 0; i < entries.length && normalized.length < capped; i++) {
-            tryPush(entries[i]);
         }
 
         return normalized;

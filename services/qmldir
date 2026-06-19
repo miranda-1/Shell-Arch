@@ -11,3 +11,4 @@ singleton Stats 1.0 Stats.qml
 singleton Power 1.0 Power.qml
 singleton Appearance 1.0 Appearance.qml
 singleton Keybinds 1.0 Keybinds.qml
+singleton Tray 1.0 Tray.qml

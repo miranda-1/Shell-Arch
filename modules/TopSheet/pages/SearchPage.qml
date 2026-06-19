@@ -1,7 +1,10 @@
 import "../../../components"
 import "../../../config"
+import "../../../services"
 import "../../Launcher"
 import QtQuick
+import Quickshell
+import Quickshell.Widgets
 
 Item {
     id: root
@@ -36,7 +39,11 @@ Item {
         if (!app || !app.desktopEntry)
             return;
 
-        app.desktopEntry.execute();
+        // "me leve até o app": se já houver janela aberta, foca em vez de
+        // relançar; senão, abre normalmente.
+        if (!Hyprland.raiseByClass(app.classHints))
+            app.desktopEntry.execute();
+
         root.requestClose();
     }
 
@@ -225,8 +232,23 @@ Item {
                             antialiasing: true
                             color: Theme.card
 
+                            // ícone real do app; cai para a inicial quando o
+                            // tema de ícones não resolve.
+                            readonly property string resolvedIcon: resultRow.modelData.icon
+                                ? Quickshell.iconPath(resultRow.modelData.icon, "")
+                                : ""
+
+                            IconImage {
+                                anchors.centerIn: parent
+                                implicitSize: 24
+                                source: rowIcon.resolvedIcon
+                                visible: rowIcon.resolvedIcon.length > 0
+                                asynchronous: true
+                            }
+
                             Text {
                                 anchors.centerIn: parent
+                                visible: rowIcon.resolvedIcon.length === 0
                                 text: resultRow.modelData.initial
                                 font.pixelSize: Theme.fsTitle
                                 font.bold: true
