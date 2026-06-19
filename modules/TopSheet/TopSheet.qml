@@ -144,7 +144,7 @@ PanelWindow {
         case "media":
             return { glyph: "", title: "Mídia", subtitle: "Estado MPRIS real, progresso e controles já aprovados centralizados aqui." };
         case "workspaces":
-            return { glyph: "", title: "Workspaces", subtitle: "Resumo real do Hyprland por tela com troca segura de workspace." };
+            return { glyph: "", title: "Janelas", subtitle: "Pré-visualização ao vivo das janelas abertas — clique para focar." };
         case "system":
             return { glyph: "", title: "Sistema", subtitle: "Sessão, uptime, bateria e leituras do ambiente atual sem polling externo." };
         case "profile":
@@ -367,6 +367,7 @@ PanelWindow {
         WorkspacesPage {
             width: pageLoader.width
             screenRef: root.screen
+            onRequestClose: root.requestClose()
         }
     }
 
