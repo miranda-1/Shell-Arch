@@ -5,8 +5,9 @@ import "modules/TopSheet"
 import "services"
 import Quickshell
 
-// Entrypoint isolado. Roda com:  qs -p ~/Projetos/ui-shell-prototype/shell.qml
-// Convive com a Waybar do HyDE — não substitui nada.
+// Entrypoint da shell. Depois do install.sh (symlink em ~/.config/quickshell/
+// ui-shell), roda com:  qs -c ui-shell   — ou, a partir do repo:  qs -p ./shell.qml
+// Convive com a Waybar do HyDE — não substitui nada até você optar pelo deploy.
 ShellRoot {
     // Uma instância de cada borda por tela. O Scope agrupa as janelas e repassa
     // o `modelData` (a tela) injetado pelo Variants.
