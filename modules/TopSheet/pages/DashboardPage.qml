@@ -56,7 +56,7 @@ Item {
                 radius: Theme.radius
                 color: Theme.accentActive
                 border.width: 1
-                border.color: Qt.rgba(1, 1, 1, 0.08)
+                border.color: Theme.onAccent(0.08)
                 antialiasing: true
 
                 Item {
@@ -74,7 +74,7 @@ Item {
                             text: "HOJE"
                             font.pixelSize: Theme.fsCaption
                             font.letterSpacing: 2
-                            color: Qt.rgba(1, 1, 1, 0.55)
+                            color: Theme.onAccent(0.55)
                         }
 
                         Text {
@@ -88,7 +88,7 @@ Item {
                             width: parent.width
                             text: root.weekdayFull
                             font.pixelSize: Theme.fsTitleLg
-                            color: Qt.rgba(1, 1, 1, 0.9)
+                            color: Theme.onAccent(0.9)
                             elide: Text.ElideRight
                         }
 
@@ -96,7 +96,7 @@ Item {
                             width: parent.width
                             text: root.fullDate
                             font.pixelSize: Theme.fsBodyLg
-                            color: Qt.rgba(1, 1, 1, 0.65)
+                            color: Theme.onAccent(0.65)
                             elide: Text.ElideRight
                         }
                     }
@@ -108,7 +108,7 @@ Item {
                         width: 96
                         height: 108
                         radius: Theme.radius
-                        color: Qt.rgba(1, 1, 1, 0.12)
+                        color: Theme.onAccent(0.12)
                         antialiasing: true
 
                         Column {
@@ -128,7 +128,7 @@ Item {
                                 text: root.monthAbbrev
                                 font.pixelSize: Theme.fsCaption
                                 font.letterSpacing: 2
-                                color: Qt.rgba(1, 1, 1, 0.7)
+                                color: Theme.onAccent(0.7)
                             }
                         }
                     }

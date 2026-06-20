@@ -89,7 +89,7 @@ Item {
             antialiasing: true
             color: Theme.accentActive
             border.width: 1
-            border.color: Qt.rgba(1, 1, 1, 0.14)
+            border.color: Theme.onAccent(0.14)
 
             Text {
                 id: tipText

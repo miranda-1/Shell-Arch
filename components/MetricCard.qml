@@ -13,7 +13,7 @@ Rectangle {
     radius: Theme.radius
     color: root.emphasized ? Theme.accentActive : Theme.card
     border.width: 1
-    border.color: root.emphasized ? Qt.rgba(1, 1, 1, 0.08) : Theme.stroke
+    border.color: root.emphasized ? Theme.onAccent(0.08) : Theme.stroke
     antialiasing: true
     // altura natural acompanha o conteúdo: textos com wrap/elide nunca
     // estouram a borda inferior do card
@@ -33,7 +33,7 @@ Rectangle {
             height: 34
             radius: 17
             antialiasing: true
-            color: root.emphasized ? Qt.rgba(1, 1, 1, 0.12) : Theme.accentSoft
+            color: root.emphasized ? Theme.onAccent(0.12) : Theme.accentSoft
 
             Text {
                 anchors.centerIn: parent
@@ -48,7 +48,7 @@ Rectangle {
             width: parent.width
             text: root.title
             font.pixelSize: Theme.fsBody
-            color: root.emphasized ? Qt.rgba(1, 1, 1, 0.72) : Theme.textDim
+            color: root.emphasized ? Theme.onAccent(0.72) : Theme.textDim
             elide: Text.ElideRight
         }
 
@@ -68,7 +68,7 @@ Rectangle {
             visible: root.subtitle.length > 0
             text: root.subtitle
             font.pixelSize: Theme.fsBody
-            color: root.emphasized ? Qt.rgba(1, 1, 1, 0.78) : Theme.textDim
+            color: root.emphasized ? Theme.onAccent(0.78) : Theme.textDim
             wrapMode: Text.Wrap
             maximumLineCount: 2
             elide: Text.ElideRight

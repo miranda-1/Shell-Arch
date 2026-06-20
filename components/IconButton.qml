@@ -81,7 +81,7 @@ Item {
             antialiasing: true
             color: Theme.accentActive                    // grafite escuro
             border.width: 1
-            border.color: Qt.rgba(1, 1, 1, 0.14)         // borda clara sutil sobre o grafite
+            border.color: Theme.onAccent(0.14)         // borda clara sutil sobre o grafite
             Text {
                 id: tipText
                 anchors.centerIn: parent

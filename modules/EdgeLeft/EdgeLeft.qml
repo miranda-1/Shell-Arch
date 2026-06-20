@@ -14,16 +14,14 @@ PanelWindow {
 
     signal requestPage(string pageId)
 
-    // glyph PUA (md-monitor) preenchido via script — some no editor
+    // glyphs PUA (md-monitor, md-speedometer) preenchidos via script — somem no editor
     property string glyphMonitor: "󰍹"
+    property string glyphStats: "󰓅"
 
     // glyphs preenchidos via script (PUA some no editor)
     property string glyphKeybinds: ""
     property string glyphAppearance: "󰌹"
     property string glyphPower: ""
-    property string glyphCpu: ""
-    property string glyphMem: "󰍛"
-    property string glyphTemp: ""
 
     screen: modelData
     readonly property string screenMonitorName: Hyprland.monitorNameForScreen(root.screen)
@@ -319,35 +317,13 @@ PanelWindow {
                     Divider { anchors.centerIn: parent }
                 }
 
-                // métricas ao vivo (CPU/MEM/TEMP) — clique abre o painel de stats
-                Item {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    width: Theme.barW
-                    height: statsCol.implicitHeight + 6
-                    readonly property bool on: root.isPageActive("stats")
-
-                    HoverHandler { id: statsHover; cursorShape: Qt.PointingHandCursor }
-                    TapHandler { acceptedButtons: Qt.LeftButton; onTapped: root.requestPage("stats") }
-
-                    Column {
-                        id: statsCol
-                        anchors.centerIn: parent
-                        spacing: 6
-
-                        Repeater {
-                            model: [root.glyphCpu, root.glyphMem, root.glyphTemp]
-                            delegate: Text {
-                                required property var modelData
-                                anchors.horizontalCenter: parent.horizontalCenter
-                                text: modelData
-                                font.family: Theme.iconFont
-                                font.pixelSize: 13
-                                color: parent.parent.on || statsHover.hovered ? Theme.accent : Theme.textDim
-
-                                Behavior on color { ColorAnimation { duration: Theme.tFast } }
-                            }
-                        }
-                    }
+                // sistema ao vivo (CPU/GPU/RAM) — um único ícone abre o painel
+                ContextButton {
+                    glyph: root.glyphStats
+                    label: "Sistema ao vivo"
+                    active: root.isPageActive("stats")
+                    glyphColor: Theme.textDim
+                    onClicked: root.requestPage("stats")
                 }
 
                 Text {
