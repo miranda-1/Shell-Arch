@@ -13,3 +13,4 @@ singleton Appearance 1.0 Appearance.qml
 singleton Keybinds 1.0 Keybinds.qml
 singleton Tray 1.0 Tray.qml
 singleton Windows 1.0 Windows.qml
+singleton Monitors 1.0 Monitors.qml

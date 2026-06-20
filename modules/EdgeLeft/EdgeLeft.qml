@@ -14,6 +14,9 @@ PanelWindow {
 
     signal requestPage(string pageId)
 
+    // glyph PUA (md-monitor) preenchido via script — some no editor
+    property string glyphMonitor: "󰍹"
+
     // glyphs preenchidos via script (PUA some no editor)
     property string glyphKeybinds: ""
     property string glyphAppearance: "󰌹"
@@ -152,6 +155,13 @@ PanelWindow {
                     label: "Aparência: tema e fundo"
                     active: root.isPageActive("appearance")
                     onClicked: root.requestPage("appearance")
+                }
+
+                ContextButton {
+                    glyph: root.glyphMonitor
+                    label: "Telas: monitor, resolução e taxa"
+                    active: root.isPageActive("monitors")
+                    onClicked: root.requestPage("monitors")
                 }
 
                 Item {

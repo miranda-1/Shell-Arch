@@ -2,6 +2,7 @@
 
 import "modules/EdgeLeft"
 import "modules/TopSheet"
+import "services"
 import Quickshell
 
 // Entrypoint isolado. Roda com:  qs -p ~/Projetos/ui-shell-prototype/shell.qml
@@ -10,7 +11,19 @@ ShellRoot {
     // Uma instância de cada borda por tela. O Scope agrupa as janelas e repassa
     // o `modelData` (a tela) injetado pelo Variants.
     Variants {
-        model: Quickshell.screens
+        // Por padrão o shell aparece em todas as telas. Se o usuário escolher um
+        // monitor específico na página "Telas" (Monitors.shellMonitor), filtra
+        // para só essa tela; se a tela escolhida não existir nesta sessão, volta
+        // a mostrar em todas (fallback seguro).
+        model: {
+            const all = Quickshell.screens;
+            const chosen = Monitors.shellMonitor;
+            if (!chosen)
+                return all;
+
+            const match = all.filter(s => s && s.name === chosen);
+            return match.length > 0 ? match : all;
+        }
         delegate: Scope {
             id: scope
             required property var modelData

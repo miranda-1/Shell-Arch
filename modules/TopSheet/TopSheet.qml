@@ -16,6 +16,9 @@ PanelWindow {
 
     signal requestClose()
 
+    // glyph PUA (md-monitor) preenchido via script — some no editor
+    property string monitorGlyph: "󰍹"
+
     screen: modelData
     anchors { top: true; left: true; right: true; bottom: true }
     exclusiveZone: 0
@@ -51,6 +54,7 @@ PanelWindow {
         case "power":      return Math.min(root.availableWidth, 460);
         case "keybinds":
         case "appearance":
+        case "monitors":
         case "calendar":   return Math.min(root.availableWidth, 640);
         // workspaces = overview tipo alt-tab compacto e centralizado: a largura
         // acompanha o nº de colunas (cards ~320) em vez de esticar a tela toda.
@@ -142,6 +146,7 @@ PanelWindow {
         case "media":      return Math.min(root.topButtonY(4), maxTop);
         case "keybinds":   return Math.min(root.topButtonY(5), maxTop);
         case "appearance": return Math.min(root.topButtonY(6), maxTop);
+        case "monitors":   return Math.min(root.topButtonY(7), maxTop);
         case "workspaces": return Math.max(36, Math.round((root.height - root.sheetHeight) / 2));
         // base alinhada à base do respectivo botão da coluna inferior:
         // perfil termina em H-10; sistema logo acima, em H-52
@@ -183,6 +188,8 @@ PanelWindow {
             return { glyph: "", title: "Energia e sessão", subtitle: "Bloquear, suspender, reiniciar, desligar ou iniciar no Windows — com confirmação." };
         case "stats":
             return { glyph: "", title: "Sistema ao vivo", subtitle: "CPU, memória e temperatura em tempo real." };
+        case "monitors":
+            return { glyph: root.monitorGlyph, title: "Telas", subtitle: "Escolha em qual monitor o shell aparece e ajuste resolução, taxa e escala — com revert automático." };
         case "dashboard":
         default:
             return { glyph: "", title: "Dashboard", subtitle: "Resumo vivo da shell com janela ativa, rede, bateria, mídia e contexto da tela." };
@@ -219,6 +226,7 @@ PanelWindow {
         case "appearance":
         case "power":
         case "stats":
+        case "monitors":
             break;
         case "system":
         case "profile":
@@ -344,6 +352,7 @@ PanelWindow {
                         : root.displayedPage === "appearance" ? appearancePage
                         : root.displayedPage === "power" ? powerPage
                         : root.displayedPage === "stats" ? statsPage
+                        : root.displayedPage === "monitors" ? monitorsPage
                         : dashboardPage
                 }
             }
@@ -437,6 +446,13 @@ PanelWindow {
     Component {
         id: statsPage
         StatsPage {
+            width: pageLoader.width
+        }
+    }
+
+    Component {
+        id: monitorsPage
+        MonitorsPage {
             width: pageLoader.width
         }
     }
