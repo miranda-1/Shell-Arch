@@ -172,6 +172,9 @@ Item {
                 id: monCard
                 required property var modelData
 
+                // resolução/taxa começa recolhida: só o modo atual aparece
+                property bool modesOpen: false
+
                 width: content.width
                 implicitHeight: monCol.implicitHeight + Theme.pad * 2
                 radius: Theme.radius
@@ -206,21 +209,55 @@ Item {
                         Text {
                             anchors.right: parent.right
                             anchors.verticalCenter: parent.verticalCenter
-                            text: monCard.modelData.w + "×" + monCard.modelData.h
-                                + " · " + monCard.modelData.hz + " Hz · "
-                                + monCard.modelData.scale + "x"
+                            text: monCard.modelData.scale + "x"
                             font.pixelSize: Theme.fsCaption
                             color: Theme.textDim
                         }
                     }
 
-                    // modos disponíveis (resolução · Hz)
+                    // seletor de resolução/taxa: recolhido mostra só o atual
+                    Rectangle {
+                        width: parent.width
+                        height: 40
+                        radius: Theme.radiusSm
+                        color: modeToggleHover.hovered ? Theme.accentSoft : Theme.accentTrack
+                        border.width: 1
+                        border.color: monCard.modesOpen ? Theme.strokeStrong : Theme.stroke
+                        antialiasing: true
+
+                        Behavior on color { ColorAnimation { duration: Theme.tFast } }
+
+                        HoverHandler { id: modeToggleHover; cursorShape: Qt.PointingHandCursor }
+                        TapHandler { onTapped: monCard.modesOpen = !monCard.modesOpen }
+
+                        Text {
+                            anchors.left: parent.left
+                            anchors.leftMargin: 11
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: monCard.modelData.w + "×" + monCard.modelData.h
+                                + " · " + monCard.modelData.hz + " Hz"
+                            font.pixelSize: Theme.fsBody
+                            color: Theme.text
+                        }
+
+                        Text {
+                            anchors.right: parent.right
+                            anchors.rightMargin: 11
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: monCard.modesOpen ? "▴" : "▾"
+                            font.pixelSize: Theme.fsCaption
+                            color: Theme.textDim
+                        }
+                    }
+
+                    // modos disponíveis (resolução · Hz) — só quando expandido
                     Flow {
+                        visible: monCard.modesOpen
                         width: parent.width
                         spacing: 6
 
                         Repeater {
-                            model: monCard.modelData.modes
+                            model: monCard.modesOpen ? monCard.modelData.modes : []
 
                             delegate: Rectangle {
                                 required property var modelData
@@ -239,7 +276,10 @@ Item {
                                 HoverHandler { id: modeHover; cursorShape: Qt.PointingHandCursor }
                                 TapHandler {
                                     enabled: !selected
-                                    onTapped: Monitors.applyMode(monCard.modelData.name, modelData.token, monCard.modelData.scale)
+                                    onTapped: {
+                                        Monitors.applyMode(monCard.modelData.name, modelData.token, monCard.modelData.scale);
+                                        monCard.modesOpen = false;
+                                    }
                                 }
 
                                 Text {

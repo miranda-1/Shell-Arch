@@ -123,11 +123,11 @@ PanelWindow {
     }
 
     // altura do painel encaixada no conteúdo da página (sem barriga vazia),
-    // limitada à altura máxima de sheet. 105 = header + divisor + spacings.
+    // limitada à altura máxima de sheet. 81 = header + divisor + spacings.
     // respiro extra no fim de cada aba para o último elemento não colar na borda
     readonly property real bottomInset: Theme.pad + 8
     readonly property real sheetNeededHeight: (pageLoader.item ? pageLoader.item.implicitHeight : 0)
-        + (root.searchDocked ? 0 : 105) + (Theme.pad + 2) * 2 + root.bottomInset
+        + (root.searchDocked ? 0 : 81) + (Theme.pad + 2) * 2 + root.bottomInset
     // teto de altura: workspaces (overview alt-tab) usa quase a tela toda para
     // caber todos os cards sem rolar; as demais páginas ficam no panelHeight.
     readonly property real maxSheetHeight: root.displayedPage === "workspaces"
@@ -316,7 +316,7 @@ PanelWindow {
             Flickable {
                 id: scroll
                 width: parent.width
-                height: root.searchDocked ? parent.height : parent.height - 105
+                height: root.searchDocked ? parent.height : parent.height - 81
                 clip: true
                 contentWidth: width
                 contentHeight: (pageLoader.item ? pageLoader.item.implicitHeight : 0) + root.bottomInset

@@ -1,5 +1,4 @@
 import "../config"
-import "../services"
 import QtQuick
 
 Item {
@@ -13,7 +12,7 @@ Item {
 
     signal closeRequested()
 
-    implicitHeight: 88
+    implicitHeight: 64
 
     Row {
         anchors.fill: parent
@@ -35,88 +34,25 @@ Item {
             }
         }
 
-        Column {
+        Text {
             anchors.verticalCenter: parent.verticalCenter
-            width: parent.width - 180
-            spacing: 6
-
-            Text {
-                text: root.title
-                font.pixelSize: Theme.fsTitleLg
-                font.bold: true
-                color: Theme.text
-            }
-
-            Text {
-                text: root.subtitle
-                font.pixelSize: Theme.fsBodyLg
-                color: Theme.textDim
-                width: parent.width
-                elide: Text.ElideRight
-            }
-
-            Row {
-                spacing: 8
-
-                Repeater {
-                    model: root.pills
-                    delegate: Rectangle {
-                        required property var modelData
-                        width: pillText.implicitWidth + (modelData.glyph ? 38 : 20)
-                        height: 26
-                        radius: 13
-                        color: modelData.active ? Theme.accentSoft : Theme.accentTrack
-                        antialiasing: true
-
-                        Row {
-                            anchors.centerIn: parent
-                            spacing: 6
-
-                            Text {
-                                visible: !!modelData.glyph
-                                text: modelData.glyph || ""
-                                font.family: Theme.iconFont
-                                font.pixelSize: 12
-                                color: modelData.active ? Theme.accentActive : Theme.textDim
-                            }
-
-                            Text {
-                                id: pillText
-                                text: modelData.text || ""
-                                font.pixelSize: 11
-                                color: modelData.active ? Theme.accentActive : Theme.textDim
-                            }
-                        }
-                    }
-                }
-            }
+            width: parent.width - 116
+            text: root.title
+            font.pixelSize: Theme.fsTitleLg
+            font.bold: true
+            color: Theme.text
+            elide: Text.ElideRight
         }
 
         Item {
             anchors.verticalCenter: parent.verticalCenter
-            width: 96
+            width: 40
             height: 40
 
             Row {
                 anchors.right: parent.right
                 anchors.verticalCenter: parent.verticalCenter
                 spacing: 8
-
-                Rectangle {
-                    width: timeText.implicitWidth + 18
-                    height: 32
-                    radius: 16
-                    color: Theme.cardHover
-                    antialiasing: true
-
-                    Text {
-                        id: timeText
-                        anchors.centerIn: parent
-                        text: Clock.timeText
-                        font.pixelSize: 12
-                        color: Theme.textDim
-                    }
-                }
 
                 Rectangle {
                     visible: root.showCloseButton
