@@ -14,16 +14,34 @@ ShellRoot {
     Variants {
         // Por padrão o shell aparece em todas as telas. Se o usuário escolher um
         // monitor específico na página "Telas" (Monitors.shellMonitor), filtra
-        // para só essa tela; se a tela escolhida não existir nesta sessão, volta
-        // a mostrar em todas (fallback seguro).
+        // para só essa tela.
+        //
+        // Importante: consideramos APENAS telas que o Hyprland confirma como
+        // conectadas (Monitors.monitors). Ao desplugar o HDMI, o Quickshell pode
+        // manter por um tempo um `screen` fantasma da tela que saiu; sem esse
+        // filtro o shell tentaria abrir na tela morta e não apareceria no
+        // notebook. Com o filtro, ao sair de casa só com o eDP-1 o monitor
+        // escolhido (HDMI) some da lista, o filtro não casa e caímos no fallback
+        // → o shell abre direto na tela interna.
         model: {
-            const all = Quickshell.screens;
-            const chosen = Monitors.shellMonitor;
-            if (!chosen)
-                return all;
+            const all = Quickshell.screens || [];
 
-            const match = all.filter(s => s && s.name === chosen);
-            return match.length > 0 ? match : all;
+            // nomes dos monitores REALMENTE conectados, segundo o Hyprland vivo
+            const live = (Monitors.monitors || [])
+                .map(m => m && m.name ? m.name : "")
+                .filter(n => n !== "");
+            const connected = live.length > 0
+                ? all.filter(s => s && live.indexOf(s.name) !== -1)
+                : all;
+
+            const chosen = Monitors.shellMonitor;
+            if (chosen) {
+                const match = connected.filter(s => s && s.name === chosen);
+                if (match.length > 0)
+                    return match;
+            }
+            // sem escolha, ou tela escolhida ausente: todas as conectadas
+            return connected;
         }
         delegate: Scope {
             id: scope

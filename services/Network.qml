@@ -42,15 +42,28 @@ Singleton {
         return null;
     }
 
-    // algum dispositivo cabeado conectado?
-    readonly property bool _wiredConnected: {
+    // primeiro dispositivo cabeado (se existir)
+    readonly property var _wiredDevice: {
         for (let i = 0; i < root._devices.length; i++) {
             const d = root._devices[i];
-            if (d && d.type === DeviceType.Wired && d.connected)
-                return true;
+            if (d && d.type === DeviceType.Wired)
+                return d;
         }
-        return false;
+        return null;
     }
+
+    // existe placa de rede cabeada nesta máquina?
+    readonly property bool hasWiredDevice: !!root._wiredDevice
+
+    // o cabo está conectado e a interface ativa?
+    readonly property bool wiredConnected: !!root._wiredDevice && root._wiredDevice.connected
+
+    // nome da interface cabeada (ex.: enp4s0), pra mostrar na UI
+    readonly property string wiredName: root._wiredDevice && root._wiredDevice.name
+        ? root._wiredDevice.name : ""
+
+    // compat: algum dispositivo cabeado conectado?
+    readonly property bool _wiredConnected: root.wiredConnected
 
     // SSID da rede Wi-Fi conectada (vazio se nenhuma)
     readonly property string ssid: root._activeWifi && root._activeWifi.name ? root._activeWifi.name : ""

@@ -12,9 +12,49 @@ Singleton {
 
     readonly property var sink: Pipewire.defaultAudioSink
 
-    // mantém o node do sink "bound" para os valores de áudio ficarem vivos
+    // todas as saídas de áudio reais (sinks que NÃO são streams de apps)
+    readonly property var sinks: {
+        const out = [];
+        const nodes = Pipewire.nodes ? Pipewire.nodes.values : [];
+        for (let i = 0; i < nodes.length; i++) {
+            const n = nodes[i];
+            if (n && n.isSink && !n.isStream)
+                out.push(n);
+        }
+        return out;
+    }
+
+    // há mais de uma saída pra onde dá pra mandar o som?
+    readonly property bool hasMultipleSinks: root.sinks.length > 1
+
+    // mantém o sink padrão E todas as saídas "bound" para descrição/estado
+    // ficarem vivos (senão description/nickname podem vir vazios)
     PwObjectTracker {
         objects: root.sink ? [root.sink] : []
+    }
+
+    PwObjectTracker {
+        objects: root.sinks
+    }
+
+    // rótulo amigável de uma saída qualquer
+    function sinkLabel(node) {
+        if (!node)
+            return "";
+        return node.description || node.nickname || node.name || "Saída";
+    }
+
+    // essa saída é a padrão atual?
+    function isDefaultSink(node) {
+        return !!node && !!root.sink && node.id === root.sink.id;
+    }
+
+    // manda o som passar a sair por esta saída (vira o sink padrão)
+    function setDefaultSink(node) {
+        if (!node || root.isDefaultSink(node))
+            return false;
+        Pipewire.preferredDefaultAudioSink = node;
+        return true;
     }
 
     readonly property bool available: !!root.sink && !!root.sink.audio && root.sink.ready

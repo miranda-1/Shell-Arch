@@ -12,8 +12,13 @@ Rectangle {
     // habilita o arrasto/clique na trilha e o clique no badge de %
     property bool interactive: false
 
+    // quando true, a linha de detalhe vira clicável (para abrir um painel,
+    // ex.: escolher a saída de áudio) e emite detailClicked()
+    property bool expandable: false
+
     signal moved(real newValue)
     signal badgeClicked()
+    signal detailClicked()
 
     radius: Theme.radius
     color: Theme.card
@@ -111,14 +116,29 @@ Rectangle {
         }
 
         Text {
+            id: detailText
             width: parent.width
             visible: root.detail.length > 0
-            text: root.detail
+            text: root.expandable ? root.detail + "  ›" : root.detail
             font.pixelSize: Theme.fsBody
-            color: Theme.textDim
+            color: root.expandable && detailHover.hovered ? Theme.text : Theme.textDim
             wrapMode: Text.Wrap
             maximumLineCount: 2
             elide: Text.ElideRight
+
+            Behavior on color { ColorAnimation { duration: Theme.tFast } }
+
+            HoverHandler {
+                id: detailHover
+                enabled: root.expandable
+                cursorShape: Qt.PointingHandCursor
+            }
+
+            TapHandler {
+                enabled: root.expandable
+                acceptedButtons: Qt.LeftButton
+                onTapped: root.detailClicked()
+            }
         }
     }
 }

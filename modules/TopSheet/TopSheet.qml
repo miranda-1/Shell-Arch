@@ -25,7 +25,7 @@ PanelWindow {
     implicitHeight: root.screenHeight
     color: "transparent"
     WlrLayershell.layer: WlrLayer.Top
-    WlrLayershell.keyboardFocus: root.open && root.displayedPage === "search"
+    WlrLayershell.keyboardFocus: root.open && (root.displayedPage === "search" || root.displayedPage === "controls")
         ? WlrKeyboardFocus.OnDemand
         : WlrKeyboardFocus.None
 
